@@ -1,0 +1,17 @@
+## Interface: 30000
+## Title: |cff4080d9n|rMeter
+
+## Notes: Meter for various data
+## Author: nekoh
+## Version: 0.1
+## SavedVariablesPerCharacter: nMeterCharDB
+
+nMeter.lua
+Collect.lua
+Window.lua
+
+Views\Sets.lua
+Views\Type.lua
+Views\Standard.lua
+Views\Spell.lua
+Views\Target.lua
