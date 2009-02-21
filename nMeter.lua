@@ -16,8 +16,9 @@ nMeter.views = {}
 nMeter.guids = {}
 nMeter.names = {}
 
--- settings
+-- SETTINGS
 local s = {
+	refreshinterval = 1,
 	petsmerged = true,
 	mincombatlength = 15,
 	combatseconds = 3,
@@ -103,7 +104,7 @@ function nMeter:OnEnable()
 	self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 
 	self:RefreshDisplay()
-	self:ScheduleRepeatingTimer("Update", 1)
+	self:ScheduleRepeatingTimer("Update", s.refreshinterval)
 end
 
 local newSet = function(name)
@@ -119,11 +120,11 @@ function nMeter:Reset()
 		[0] = newSet(),
 	}
 	current = newSet()
-	current.active = true
 	if self.nav.set and self.nav.set ~= "total" and self.nav.set ~= "current" then
 		self.nav.set = "current"
 	end
 	nMeter:RefreshDisplay()
+	collectgarbage("collect")
 end
 
 function nMeter:RefreshDisplay(update)
@@ -148,9 +149,17 @@ end
 function nMeter:Scroll(dir)
 	local view = self.views[self.nav.view]
 	if dir > 0 and view.first > 1 then
-		view.first = view.first - 1
+		if IsShiftKeyDown() then
+			view.first = 1
+		else
+			view.first = view.first - 1
+		end
 	elseif dir < 0 then
-		view.first = view.first + 1
+		if IsShiftKeyDown() then
+			view.first = 9999
+		else
+			view.first = view.first + 1
+		end
 	end
 	nMeter:RefreshDisplay(true)
 end

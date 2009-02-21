@@ -20,10 +20,13 @@ local setLine = function(name, id, lineid)
 	if name then
 		line:SetLeftText(name)
 	else
-		local set = 
 		line:SetLeftText("%i. %s", id, set.name or 'nil') -- TODO: remove nil when resetting
 	end
-	line:SetRightText("")
+	if set.start and set.now then
+		line:SetRightText("%.1fs  %s", set.now-set.start, date("%H:%M:%S", set.start))
+	else
+		line:SetRightText("")
+	end
 	line:SetColor(.3, .3, .3)
 	line.id = id
 	line:SetDetailAction(detailAction)
