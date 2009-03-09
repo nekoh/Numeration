@@ -3,12 +3,14 @@
 -- reset
 -- report
 -- only enable tracking under conditions [in instances]
--- only keep boss segments
 -- interrupts
 -- [dd/dt/heal]-per second
 -- spell details [crit,miss]
+-- oh %
+-- death log?
 -- remove ace
 -- ? differentiate between over time- and direct- spells
+-- only keep boss segments: make dynamic?
 --------------------------------------------------------------------------------
 nMeter = LibStub("AceAddon-3.0"):NewAddon("nMeter", "AceEvent-3.0", "AceTimer-3.0")
 nMeter.views = {}
@@ -18,8 +20,9 @@ nMeter.names = {}
 
 -- SETTINGS
 local s = {
-	refreshinterval = 1,
+	onlybosses = true,
 	petsmerged = true,
+	refreshinterval = 1,
 	mincombatlength = 15,
 	combatseconds = 3,
 }
@@ -84,12 +87,20 @@ nMeter.color = {
 	PET = { 0.09, 0.61, 0.55 },
 }
 
+local newSet = function()
+	return {
+		unit = {},
+	}
+end
+local current
+
 function nMeter:OnInitialize()
 	self.window:OnInitialize()
 	
 	if not nMeterCharDB then
 		self:Reset()
 	end
+	current = self:GetSet(1) or newSet()
 end
 
 function nMeter:OnEnable()
@@ -107,14 +118,6 @@ function nMeter:OnEnable()
 	self:ScheduleRepeatingTimer("Update", s.refreshinterval)
 end
 
-local newSet = function(name)
-	return {
-		name = name,
-		unit = {},
-	}
-end
-
-local current = newSet()
 function nMeter:Reset()
 	nMeterCharDB = {
 		[0] = newSet(),
@@ -199,16 +202,16 @@ function nMeter:GetUnit(set, playerID, playerName)
 	local ownerName = self.names[class]
 
 	if not ownerName then
-		-- player
-		local p = set.unit[playerName]
-		if not p then
-			p = {
+		-- unit
+		local u = set.unit[playerName]
+		if not u then
+			u = {
 				name = playerName,
 				class = class,
 			}
-			set.unit[playerName] = p
+			set.unit[playerName] = u
 		end
-		return p
+		return u
 	else
 		-- pet
 		local name = format("%s:%s", ownerName, playerName)
@@ -227,11 +230,11 @@ function nMeter:GetUnit(set, playerID, playerName)
 			}
 			set.unit[name] = p
 		end
-		return p
+		return p, true
 	end
 end
 
-local extraguids = {}
+local summonguids = {}
 do
 	local UnitGUID, UnitName, UnitClass
 		= UnitGUID, UnitName, UnitClass
@@ -250,7 +253,7 @@ do
 	function nMeter:UpdateGUIDS()
 		nMeter.names = wipe(nMeter.names)
 		nMeter.guids = wipe(nMeter.guids)
-		for pid, uid in pairs(extraguids) do
+		for pid, uid in pairs(summonguids) do
 			nMeter.guids[pid] = uid
 		end
 		
@@ -259,14 +262,21 @@ do
 			for i = 1, num do
 				addPlayerPet("raid"..i, "raid"..i.."pet")
 			end
-			return
+		else
+			addPlayerPet("player", "pet")
+			local num = GetNumPartyMembers()
+			if num > 0 then
+				for i = 1, num do
+					addPlayerPet("party"..i, "party"..i.."pet")
+				end
+			end
 		end
 		
-		addPlayerPet("player", "pet")
-		local num = GetNumPartyMembers()
-		if num > 0 then
-			for i = 1, num do
-				addPlayerPet("party"..i, "party"..i.."pet")
+		-- remove summons from guid list, if owner is gone
+		for pid, uid in pairs(summonguids) do
+			if not nMeter.guids[uid] then
+				nMeter.guids[pid] = nil
+				summonguids[pid] = nil
 			end
 		end
 	end
@@ -288,6 +298,33 @@ function nMeter:PLAYER_REGEN_ENABLED()
 	combatTimer = self:ScheduleTimer("LeaveCombatEvent", s.combatseconds)
 end
 
+local bossNames = {
+	-- Naxxramas
+	["Anub'Rekhan"] = true,
+	["Grand Widow Faerlina"] = true,
+	["Maexxna"] = true,
+	["Noth the Plaguebringer"] = true,
+	["Heigan the Unclean"] = true,
+	["Loatheb"] = true,
+	["Instructor Razuvious"] = true,
+	["Gothik the Harvester"] = true,
+	["Thane Korth'azz"] = "The Four Horsemen",
+	["Lady Blaumeux"] = "The Four Horsemen",
+	["Baron Rivendare"] = "The Four Horsemen",
+	["Sir Zeliek"] = "The Four Horsemen",
+	["Patchwerk"] = true,
+	["Grobbulus"] = true,
+	["Gluth"] = true,
+	["Thaddius"] = true,
+	["Sapphiron"] = true,
+	["Kel'Thuzad"] = true,
+	-- The Eye of Eternity
+	["Malygos"] = true,
+	-- The Obsidian Sanctum
+	["Sartharion"] = true,
+	-- Vault of Archavon
+	["Archavon the Stone Watcher"] = true,
+}
 function nMeter:EnterCombatEvent(timestamp, name)
 	if not current.active then
 		current = newSet()
@@ -296,9 +333,13 @@ function nMeter:EnterCombatEvent(timestamp, name)
 	end
 	
 	current.now = timestamp
-	if not current.name then
-		current.name = name
-		-- TODO: Bossname and stuff
+	if not current.boss then
+		if bossNames[name] then
+			current.name = bossNames[name] == true and name or bossNames[name]
+			current.boss = true
+		elseif not current.name then
+			current.name = name
+		end
 	end
 	if not inCombat then
 		self:CancelTimer(combatTimer, true)
@@ -309,7 +350,7 @@ end
 function nMeter:LeaveCombatEvent()
 	if current.active then
 		current.active = nil
-		if (current.now - current.start) < s.mincombatlength then
+		if ((current.now - current.start) < s.mincombatlength) or (s.onlybosses and not current.boss) then
 			return
 		end
 		tinsert(nMeterCharDB, 1, current)
@@ -330,10 +371,10 @@ function nMeter:COMBAT_LOG_EVENT_UNFILTERED(e, timestamp, eventtype, srcGUID, sr
 	end
 
 	if eventtype == 'SPELL_SUMMON' and self.guids[srcGUID] then
-		extraguids[dstGUID] = srcGUID
+		summonguids[dstGUID] = srcGUID
 		self.guids[dstGUID] = srcGUID
-	elseif eventtype == 'UNIT_DIED' and extraguids[srcGUID] then
-		extraguids[srcGUID] = nil
+	elseif eventtype == 'UNIT_DIED' and summonguids[srcGUID] then
+		summonguids[srcGUID] = nil
 		self.guids[srcGUID] = nil
 	end
 end
