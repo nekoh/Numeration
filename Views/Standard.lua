@@ -3,12 +3,6 @@ local view = {}
 addon.views["Standard"] = view
 view.first = 1
 
-function view:Init()
-	local v = nMeter.types[addon.nav.type]
-	local c = v.c
-	addon.window:SetTitle(v.name, c[1], c[2], c[3])
-end
-
 local backAction = function(f)
 	view.first = 1
 	addon.nav.view = 'Type'
@@ -20,6 +14,13 @@ local detailAction = function(f)
 	addon.nav.view = 'Spell'
 	addon.nav.unit = f.unit
 	addon:RefreshDisplay()
+end
+
+function view:Init()
+	local v = nMeter.types[addon.nav.type]
+	local c = v.c
+	addon.window:SetTitle(v.name, c[1], c[2], c[3])
+	addon.window:SetBackAction(backAction)
 end
 
 local amountWithPets = function(set, unit, vtype)
@@ -44,7 +45,6 @@ end
 
 local sorttbl = {}
 function view:Update(merge)
-	addon.window:SetBackAction(backAction)
 	local set = addon:GetSet(addon.nav.set)
 	if not set then return end
 	

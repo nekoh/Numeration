@@ -3,10 +3,6 @@ local view = {}
 addon.views["Type"] = view
 view.first = 1
 
-function view:Init()
-	addon.window:SetTitle("Selection: Type", .1, .1, .1)
-end
-
 local backAction = function(f)
 	view.first = 1
 	addon.nav.view = 'Sets'
@@ -20,8 +16,12 @@ local detailAction = function(f)
 	addon:RefreshDisplay()
 end
 
-function view:Update()
+function view:Init()
+	addon.window:SetTitle("Selection: Type", .1, .1, .1)
 	addon.window:SetBackAction(backAction)
+end
+
+function view:Update()
 	local set = addon:GetSet(addon.nav.set)
 	if not set then return end
 	

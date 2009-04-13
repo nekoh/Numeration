@@ -3,19 +3,6 @@ local view = {}
 addon.views["Spell"] = view
 view.first = 1
 
-function view:Init()
-	local v = addon.types[addon.nav.type]
-	local unit = addon.nav.unit
-	local c = v.c
-	local text
-	if unit.owner then
-		text = format("%s: %s <%s>", v.name, unit.name, unit.owner)
-	else
-		text = format("%s: %s", v.name, unit.name)
-	end
-	addon.window:SetTitle(text, c[1], c[2], c[3])
-end
-
 local backAction = function(f)
 	view.first = 1
 	addon.nav.view = 'Standard'
@@ -28,6 +15,19 @@ local detailAction = function(f)
 	addon:RefreshDisplay()
 end
 
+function view:Init()
+	local v = addon.types[addon.nav.type]
+	local unit = addon.nav.unit
+	local text
+	if unit.owner then
+		text = format("%s: %s <%s>", v.name, unit.name, unit.owner)
+	else
+		text = format("%s: %s", v.name, unit.name)
+	end
+	addon.window:SetTitle(text, v.c[1], v.c[2], v.c[3])
+	addon.window:SetBackAction(backAction)
+end
+
 -- sortfunc
 local what = nil
 local sorter = function(s1, s2)
@@ -36,13 +36,12 @@ end
 
 local sorttbl = {}
 function view:Update(merge)
-	addon.window:SetBackAction(backAction)
 	local set = addon:GetSet(addon.nav.set)
 	if not set then return end
 	local unit = addon.nav.unit
 
 	what = addon.types[addon.nav.type].id
-	local total = unit[what]
+	local total = unit[what] or 0
 	-- sort
 	sorttbl = wipe(sorttbl)
 	local id = 0

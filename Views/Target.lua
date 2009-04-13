@@ -3,23 +3,23 @@ local view = {}
 addon.views["Target"] = view
 view.first = 1
 
+local backAction = function(f)
+	view.first = 1
+	addon.nav.view = 'Spell'
+	addon:RefreshDisplay()
+end
+
 function view:Init()
 	local v = addon.types[addon.nav.type]
 	local unit = addon.nav.unit
-	local c = v.c
 	local text
 	if unit.owner then
 		text = format("%s Targets: %s <%s>", v.name, unit.name, unit.owner)
 	else
 		text = format("%s Targets: %s", v.name, unit.name)
 	end
-	addon.window:SetTitle(text, c[1], c[2], c[3])
-end
-
-local backAction = function(f)
-	view.first = 1
-	addon.nav.view = 'Spell'
-	addon:RefreshDisplay()
+	addon.window:SetTitle(text, v.c[1], v.c[2], v.c[3])
+	addon.window:SetBackAction(backAction)
 end
 
 -- sortfunc
@@ -30,7 +30,6 @@ end
 
 local sorttbl = {}
 function view:Update(merge)
-	addon.window:SetBackAction(backAction)
 	local set = addon:GetSet(addon.nav.set)
 	if not set then return end
 	local unit = addon.nav.unit

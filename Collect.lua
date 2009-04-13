@@ -1,4 +1,4 @@
-local addon = nMeter
+﻿local addon = nMeter
 local collect = {}
 addon.collect = collect
 
