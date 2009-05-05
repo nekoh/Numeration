@@ -108,17 +108,13 @@ local SetColor = function(f, r, g, b, a)
 	f:SetStatusBarColor(r, g, b, a or 1)
 end
 local SetDetailAction = function(f, func)
-	if func then
-		f.detailAction = func
-	else
-		f.detailAction = noop
-	end
+	f.detailAction = func or noop
 end
 window.SetDetailAction = SetDetailAction
 
 local lines = {}
 function window:Clear()
-	self:SetBackAction()
+--	self:SetBackAction()
 	self:SetDetailAction()
 	for id,line in pairs(lines) do
 		line:SetIcon()
@@ -192,7 +188,7 @@ function window:GetConfirmWindow()
     })
 	confirm:SetBackdropColor(0, 0, 0, 1)
 	
-	confirm:SetPoint("CENTER")
+	confirm:SetPoint("CENTER", UIParent, "CENTER")
 
 	local title = confirm:CreateTexture(nil, "ARTWORK")
 	confirm.title = title

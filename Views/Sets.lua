@@ -21,7 +21,7 @@ local setLine = function(lineid, setid, title)
 	if title then
 		line:SetLeftText(title)
 	else
-		line:SetLeftText("%i. %s", setid, set.name or 'nil') -- TODO: remove nil when resetting
+		line:SetLeftText("%i. %s", setid, set.name)
 	end
 	if set.start and set.now then
 		line:SetRightText("%.1fs  %s", set.now-set.start, date("%H:%M:%S", set.start))

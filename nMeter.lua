@@ -1,16 +1,16 @@
 --------------------------------------------------------------------------------
 -- TODO ------------------------------------------------------------------------
--- reset
+-- reset (also automated)
 -- report
 -- only enable tracking under conditions [in instances]
 -- interrupts
 -- [dd/dt/heal]-per second
--- spell details [crit,miss]
 -- oh %
--- death log?
+-- ? spell details [crit,miss]
+-- ? death log
 -- remove ace
 -- ? differentiate between over time- and direct- spells
--- only keep boss segments: make dynamic?
+-- only keep boss segments: make dynamic? wtf is that ?
 --------------------------------------------------------------------------------
 nMeter = LibStub("AceAddon-3.0"):NewAddon("nMeter", "AceEvent-3.0", "AceTimer-3.0")
 nMeter.views = {}
@@ -324,6 +324,24 @@ local bossNames = {
 	["Sartharion"] = true,
 	-- Vault of Archavon
 	["Archavon the Stone Watcher"] = true,
+	-- Ulduar
+	["Flame Leviathan"] = true,
+	["Razorscale"] = true,
+	["XT-002 Deconstructor"] = true,
+	["Ignis the Furnace Master"] = true,
+	["Steelbreaker"] = "Assembly of Iron",
+	["Runemaster Molgeim"] = "Assembly of Iron",
+	["Stormcaller Brundir"] = "Assembly of Iron",
+	["Kologarn"] = true,
+	["Auriaya"] = true,
+	["Mimiron"] = true,
+	["Leviathan Mk II"] = "Mimiron",
+	["Hodir"] = true,
+	["Thorim"] = true,
+	["Freya"] = true,
+	["General Vezax"] = true,
+	["Guardian of Yogg-Saron"] = "Yogg-Saron",
+	["Algalon the Observer"] = true,
 }
 function nMeter:EnterCombatEvent(timestamp, name)
 	if not current.active then
@@ -370,9 +388,14 @@ function nMeter:COMBAT_LOG_EVENT_UNFILTERED(e, timestamp, eventtype, srcGUID, sr
 		self.collect[eventtype](timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, ...)
 	end
 
-	if eventtype == 'SPELL_SUMMON' and self.guids[srcGUID] then
-		summonguids[dstGUID] = srcGUID
-		self.guids[dstGUID] = srcGUID
+	local ownerClassOrGUID = self.guids[srcGUID]
+	if eventtype == 'SPELL_SUMMON' and ownerClassOrGUID then
+		local realSrcGUID = srcGUID
+		if self.guids[ownerClassOrGUID] then
+			realSrcGUID = ownerClassOrGUID
+		end
+		summonguids[dstGUID] = realSrcGUID
+		self.guids[dstGUID] = realSrcGUID
 	elseif eventtype == 'UNIT_DIED' and summonguids[srcGUID] then
 		summonguids[srcGUID] = nil
 		self.guids[srcGUID] = nil
