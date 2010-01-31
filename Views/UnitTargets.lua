@@ -73,7 +73,7 @@ function view:Update(merged)
 	self.first, self.last = addon:GetArea(self.first, #sorttbl)
 	if not self.last then return end
 	
-	local c = addon.color[unit.class]
+	local c = addon.color[u.class]
 	local maxvalue = nameToValue[sorttbl[1]]
 	for i = self.first, self.last do
 		local pu = nameToUnit[sorttbl[i]]

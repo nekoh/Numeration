@@ -53,7 +53,7 @@ function view:Update(merged)
 	local total = 0
 	if u[etype] then
 		total = u[etype].total
-		for id, amount in pairs(u[etype].F) do
+		for id, amount in pairs(u[etype].spell) do
 			local name = format("%s%i", u.name, id)
 			nameToValue[name] = amount
 			nameToId[name] = id
@@ -78,7 +78,7 @@ function view:Update(merged)
 	table.sort(sorttbl, sorter)
 	
 	local action = nil
-	if u[etype].target then
+	if addon.nav.set ~= "total" then
 		action = detailAction
 		addon.window:SetDetailAction(action)
 	end
