@@ -64,7 +64,7 @@ function view:Update(merged)
 			if u[etype] then
 				calcValueTime(set, name, etype, merged)
 				tinsert(sorttbl, name)
-			elseif u.pets then
+			elseif merged and u.pets then
 				for petname,v in pairs(u.pets) do
 					if set.unit[petname][etype] then
 						calcValueTime(set, name, etype, merged)
@@ -84,7 +84,7 @@ function view:Update(merged)
 	local maxvalue = nameToValue[sorttbl[1]]
 	for i = self.first, self.last do
 		local u = set.unit[sorttbl[i]]
-		local value, time = nameToValue[u.name], nameToTime[u.name]
+		local value, time = nameToValue[sorttbl[i]], nameToTime[sorttbl[i]]
 		local c = addon.color[u.class]
 		
 		local line = addon.window:GetLine(i-self.first)
@@ -100,7 +100,7 @@ function view:Update(merged)
 			line:SetRightText("%i (%02.1f%%)", value, value/total*100)
 		end
 		line:SetColor(c[1], c[2], c[3])
-		line.unit = u.name
+		line.unit = sorttbl[i]
 		line:SetDetailAction(detailAction)
 		line:Show()
 	end

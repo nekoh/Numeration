@@ -1,13 +1,12 @@
 --------------------------------------------------------------------------------
 -- TODO ------------------------------------------------------------------------
--- manual reset (+ improve automated suggesting)
--- manual petmerge toggle
 -- remove ace
 -- window: icon view -> bar does not starts under icon
 -- oh %
 -- report
 -- arenas
 -- tracking conditions (improve, fix)
+-- reset (fix automated suggesting on login)
 -- ? spell details [crit,miss]
 -- ? differentiate between over time- and direct- spells
 -- /run SetCVar('uiScale', 768 / 1050)
@@ -222,6 +221,11 @@ function nMeter:GetArea(start, total)
 	end
 	self.window:SetScrollPosition(first, total)
 	return first, last
+end
+
+function nMeter:TogglePetMerge()
+	s.petsmerged = not s.petsmerged
+	self:RefreshDisplay(true)
 end
 
 function nMeter:GetSet(id)
