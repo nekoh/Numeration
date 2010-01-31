@@ -2,7 +2,6 @@
 -- TODO ------------------------------------------------------------------------
 -- manual reset (+ improve automated suggesting)
 -- manual petmerge toggle
--- clip title text
 -- remove ace
 -- window: icon view -> bar does not starts under icon
 -- oh %

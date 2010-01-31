@@ -71,7 +71,9 @@ function window:OnInitialize()
 		font:SetJustifyH("LEFT")
 		font:SetFont(s.titlefont, s.titlefontsize, "OUTLINE")
 		font:SetTextColor(s.titlefontcolor[1], s.titlefontcolor[2], s.titlefontcolor[3], 1)
-		font:SetPoint("TOPLEFT", 5, -2)
+		font:SetHeight(s.titleheight)
+		font:SetPoint("LEFT", title, "LEFT", 4, 0)
+		font:SetPoint("RIGHT", title, "RIGHT", -1, 0)
 
 	self.detailAction = noop
 	self:SetScript("OnMouseDown", clickFunction)
@@ -81,9 +83,7 @@ function window:OnInitialize()
 end
 
 function window:SetScrollPosition(curPos, maxPos)
-	if maxPos <= s.maxlines then
-		return
-	end
+	if maxPos <= s.maxlines then return end
 	local total = s.maxlines*(s.lineheight+s.linegap)
 	self.scroll:SetHeight(s.maxlines/maxPos*total)
 	self.scroll:SetPoint("TOPLEFT", self.title, "BOTTOMRIGHT", 2, -1-(curPos-1)/maxPos*total)
