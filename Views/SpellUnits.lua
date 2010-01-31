@@ -70,7 +70,6 @@ function view:Update(merged)
 		end
 		line:SetRightText("%i (%02.1f%%)", value, value/total*100)
 		line:SetColor(c[1], c[2], c[3])
-		line:SetIcon()
 		line:SetDetailAction(nil)
 		line:Show()
 	end

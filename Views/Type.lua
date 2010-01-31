@@ -25,11 +25,27 @@ function view:Update()
 	local set = addon:GetSet(addon.nav.set)
 	if not set then return end
 	
-	self.first, self.last = addon:GetArea(self.first, #addon.types)
+	local num = #addon.types
+	if addon.nav.set == "total" then
+		for i,t in pairs(addon.types) do
+			if t.onlyfights then
+				num = num -1
+			end
+		end
+	end
+	self.first, self.last = addon:GetArea(self.first, num)
 	if not self.last then return end
-
+	
+	local id = self.first - 1
 	for i = self.first, self.last do
-		t = addon.types[i]
+		id = id + 1
+		local t = addon.types[id]
+		if addon.nav.set == "total" then
+			while t.onlyfights do
+				id = id + 1
+				t = addon.types[id]
+			end
+		end
 		local line = addon.window:GetLine(i-self.first)
 		local c = t.c
 		
@@ -47,7 +63,7 @@ function view:Update()
 			line:SetRightText("")
 		end
 		line:SetColor(c[1], c[2], c[3])
-		line.typeid = i
+		line.typeid = id
 		line:SetDetailAction(detailAction)
 		line:Show()
 	end

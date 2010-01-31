@@ -1,11 +1,13 @@
 --------------------------------------------------------------------------------
 -- TODO ------------------------------------------------------------------------
 -- scroll bar indicator
--- add damage taken from abilities view
 -- manual reset (+ improve automated suggesting)
 -- manual petmerge toggle
--- oh %
+-- spellid tooltips
+-- clip title text
 -- remove ace
+-- window: icon view -> bar does not starts under icon
+-- oh %
 -- report
 -- arenas
 -- tracking conditions (improve, fix)
@@ -37,16 +39,18 @@ nMeter.types = {
 		name = "Damage Targets",
 		id = "dd",
 		view = "Targets",
+		onlyfights = true,
 		c = {.25, .66, .35},
 	},
 	{
-		name = "Damage Taken Targets",
+		name = "Damage Taken: Targets",
 		id = "dt",
 		view = "Targets",
+		onlyfights = true,
 		c = {.66, .25, .25},
 	},
 	{
-		name = "Damage Taken Abilities",
+		name = "Damage Taken: Abilities",
 		id = "dt",
 		view = "Spells",
 		c = {.66, .25, .25},
@@ -90,6 +94,7 @@ nMeter.types = {
 		name = "Death Log",
 		id = "dl",
 		view = "Deathlog",
+		onlyfights = true,
 		c = {.66, .25, .25},
 	},
 }
@@ -305,12 +310,12 @@ do
 		local unitID = UnitGUID(unit)
 		if not unitID then return end
 		
-		local unitName = UnitName(unit)
+		local unitName, unitRealm = UnitName(unit)
 		local _, unitClass = UnitClass(unit)
 		local petID = UnitGUID(pet)
 		
 		nMeter.guids[unitID] = unitClass
-		nMeter.names[unitID] = unitName
+		nMeter.names[unitID] = unitRealm and format("%s-%s", unitName, unitRealm) or unitName
 		if petID then
 			nMeter.guids[petID] = unitID
 		end

@@ -388,6 +388,7 @@ local function addSpellDetails(u, etype, spellID, amount)
 	event.spell[spellID] = (event.spell[spellID] or 0) + amount
 end
 local function addTargetDetails(u, etype, targetName, amount)
+	if not targetName then targetName = 'Unknown' end
 	local t = u[etype].target
 	if not t then
 		t = {}
@@ -415,7 +416,7 @@ end
 
 local function updateTime(u, etype, timestamp)
 	local last = u[etype].last
-	u[etype].last = now
+	u[etype].last = timestamp
 	if not last then return end
 	
 	local t = u[etype].time or 0
