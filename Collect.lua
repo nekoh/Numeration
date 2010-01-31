@@ -160,10 +160,10 @@ local function unitDied(timestamp, playerID, playerName)
 	deathlog[0] = string.format("%s#%s#DEATH#%s:%s:%s:%s", playerName, class, _spellId or '', _srcName or '', _spellSchool or '', _amount or '')
 	if set.deathlog then
 		tinsert(set.deathlog, deathlog)
+		set.deathlog.total = set.deathlog.total + 1
 	else
-		set.deathlog = { deathlog, }
+		set.deathlog = { deathlog, total=1 }
 	end
-	set.dl = (set.dl or 0) + 1
 end
 local function unitRezzed(timestamp, playerID, playerName, spellId, rezzerName)
 	local class = nMeter:GetUnitClass(playerID)
@@ -178,10 +178,10 @@ local function unitRezzed(timestamp, playerID, playerName, spellId, rezzerName)
 	}
 	if set.deathlog then
 		tinsert(set.deathlog, deathlog)
+		set.deathlog.total = set.deathlog.total + 1
 	else
-		set.deathlog = { deathlog, }
+		set.deathlog = { deathlog, total=1 }
 	end
-	set.dl = (set.dl or 0) + 1
 	clearEvts(playerID)
 end
 

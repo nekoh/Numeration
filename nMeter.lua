@@ -91,7 +91,7 @@ nMeter.types = {
 	},
 	{
 		name = "Death Log",
-		id = "dl",
+		id = "deathlog",
 		view = "Deathlog",
 		onlyfights = true,
 		c = {.66, .25, .25},

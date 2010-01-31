@@ -51,7 +51,7 @@ function view:Update()
 		
 		line:SetValues(1, 1)
 		line:SetLeftText(" %s", t.name)
-		local amount = 0
+		local amount = set[t.id] and set[t.id].total or 0
 		for name, u in pairs(set.unit) do
 			if u[t.id] then
 				amount = amount + u[t.id].total
