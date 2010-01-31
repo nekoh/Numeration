@@ -50,6 +50,15 @@ function window:OnInitialize()
 	
 	self:SetPoint(unpack(s.pos))
 
+	local scroll = self:CreateTexture(nil, "ARTWORK")
+	self.scroll = scroll
+		scroll:SetTexture([[Interface\Buttons\WHITE8X8]])
+		scroll:SetTexCoord(.8, 1, .8, 1)
+		scroll:SetVertexColor(0, 0, 0, .8)
+		scroll:SetWidth(4)
+		scroll:SetHeight(4)
+		scroll:Hide()
+	
 	local title = self:CreateTexture(nil, "ARTWORK")
 	self.title = title
 		title:SetTexture([[Interface\TargetingFrame\UI-StatusBar]])
@@ -69,6 +78,16 @@ function window:OnInitialize()
 	self:SetScript("OnMouseWheel", function(self, num)
 		addon:Scroll(num)
 	end)
+end
+
+function window:SetScrollPosition(curPos, maxPos)
+	if maxPos <= s.maxlines then
+		return
+	end
+	local total = s.maxlines*(s.lineheight+s.linegap)
+	self.scroll:SetHeight(s.maxlines/maxPos*total)
+	self.scroll:SetPoint("TOPLEFT", self.title, "BOTTOMRIGHT", 2, -1-(curPos-1)/maxPos*total)
+	self.scroll:Show()
 end
 
 function window:SetTitle(name, r, g, b)
@@ -116,6 +135,7 @@ window.SetDetailAction = SetDetailAction
 local lines = {}
 function window:Clear()
 --	self:SetBackAction()
+	self.scroll:Hide()
 	self:SetDetailAction()
 	for id,line in pairs(lines) do
 		line:SetIcon()

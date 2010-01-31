@@ -1,6 +1,5 @@
 --------------------------------------------------------------------------------
 -- TODO ------------------------------------------------------------------------
--- scroll bar indicator
 -- manual reset (+ improve automated suggesting)
 -- manual petmerge toggle
 -- spellid tooltips
@@ -222,6 +221,7 @@ function nMeter:GetArea(start, total)
 	if first < 1 then
 		first = 1
 	end
+	self.window:SetScrollPosition(first, total)
 	return first, last
 end
 
