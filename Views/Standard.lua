@@ -23,18 +23,21 @@ function view:Init()
 	addon.window:SetBackAction(backAction)
 end
 
-local amountWithPets = function(set, unit, vtype)
+local amountWithPets = function(set, unit, vtype, vtypet)
 	if unit.owner then return end
-	local value = unit[vtype]
+	local value, valuet = unit[vtype], unit[vtypet]
 	if unit.pets then
 		for name,v in pairs(unit.pets) do
-			local amount = set.unit[name][vtype]
+			local amount, amountt = set.unit[name][vtype], set.unit[name][vtypet]
 			if amount then
 				value = (value or 0) + amount
+				if amountt and (not valuet or amountt > valuet) then
+					valuet = amountt
+				end
 			end
 		end
 	end
-	return value
+	return value, valuet
 end
 
 -- sortfunc
@@ -50,16 +53,18 @@ function view:Update(merge)
 	
 	what = addon.types[addon.nav.type].id
 	local total = set[what]
+	local whatt = string.format("%st", what)
 	
 	-- compile and sort information table
 	sorttbl = wipe(sorttbl)
 	local id = 0
 	for name,u in pairs(set.unit) do
 		if merge then
-			local amount = amountWithPets(set, u, what)
+			local amount, amountt = amountWithPets(set, u, what, whatt)
 			if amount then
 				id = id + 1
 				u.merged = amount
+				u.mergedt = amountt
 				sorttbl[id] = u
 			end
 		elseif u[what] then
@@ -69,6 +74,7 @@ function view:Update(merge)
 	end
 	if merge then
 		what = 'merged'
+		whatt = 'mergedt'
 	end
 	table.sort(sorttbl, sorter)
 	
@@ -81,6 +87,7 @@ function view:Update(merge)
 		local u = sorttbl[i]
 		local line = addon.window:GetLine(i-self.first)
 		local value = u[what]
+		local t = u[whatt]
 		local c = addon.color[u.class]
 		
 		line:SetValues(value, maxvalue)
@@ -89,7 +96,11 @@ function view:Update(merge)
 		else
 			line:SetLeftText("%i. %s", i, u.name)
 		end
-		line:SetRightText("%i (%02.1f%%)", value, value/total*100)
+		if t then
+			line:SetRightText("%i (%.1f, %02.1f%%)", value, value/t, value/total*100)
+		else
+			line:SetRightText("%i (%02.1f%%)", value, value/total*100)
+		end
 		line:SetColor(c[1], c[2], c[3])
 		line.unit = u
 		line:SetDetailAction(detailAction)
@@ -100,6 +111,7 @@ function view:Update(merge)
 	if merge then
 		for i,v in ipairs(sorttbl) do
 			v.merged = nil
+			v.mergedt = nil
 		end
 	end
 end

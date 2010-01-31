@@ -23,6 +23,11 @@ local s = {
 
 local noop = function() end
 local backAction = noop
+local backdrop = {
+	bgFile = [[Interface\Tooltips\UI-Tooltip-Background]],--[[Interface\DialogFrame\UI-DialogBox-Background]]---,
+	edgeFile = "", tile = true, tileSize = 16, edgeSize = 0,
+	insets = { left = 0, right = 0, top = 0, bottom = 0 }
+}
 local clickFunction = function(self, btn)
 	if btn == "LeftButton" then
 		self.detailAction(self)
@@ -40,11 +45,7 @@ function window:OnInitialize()
     self:SetMovable(true)
     self:RegisterForDrag("LeftButton")
 
-	self:SetBackdrop({
-        bgFile = [[Interface\DialogFrame\UI-DialogBox-Background]],
-        edgeFile = "", tile = true, tileSize = 16, edgeSize = 0,
-        insets = { left = 0, right = 0, top = 0, bottom = 0 }
-    })
+	self:SetBackdrop(backdrop)
 	self:SetBackdropColor(0, 0, 0, 1)
 	
 	self:SetPoint(unpack(s.pos))
@@ -173,37 +174,51 @@ function window:GetLine(id)
 	return f
 end
 
-local confirm
-function window:GetConfirmWindow()
-	if confirm then return confirm end
-	
-	confirm = CreateFrame("Frame", nil, window)
-		confirm:SetWidth(200)
-		confirm:SetHeight(50)
+local reset
+function window:ShowResetWindow()
+	if not reset then
+		reset = CreateFrame("Frame", nil, window)
+		reset:SetBackdrop(backdrop)
+		reset:SetBackdropColor(0, 0, 0, 1)
+		reset:SetWidth(200)
+		reset:SetHeight(45)
+		reset:SetPoint("CENTER", UIParent, "CENTER", 0, 200)
 
-	confirm:SetBackdrop({
-        bgFile = [[Interface\DialogFrame\UI-DialogBox-Background]],
-        edgeFile = "", tile = true, tileSize = 16, edgeSize = 0,
-        insets = { left = 0, right = 0, top = 0, bottom = 0 }
-    })
-	confirm:SetBackdropColor(0, 0, 0, 1)
-	
-	confirm:SetPoint("CENTER", UIParent, "CENTER")
+		reset.title = reset:CreateTexture(nil, "ARTWORK")
+		reset.title:SetTexture([[Interface\TargetingFrame\UI-StatusBar]])
+		reset.title:SetTexCoord(.8, 1, .8, 1)
+		reset.title:SetVertexColor(.1, .1, .1, .9)
+		reset.title:SetPoint("TOPLEFT", 1, -1)
+		reset.title:SetPoint("BOTTOMRIGHT", reset, "TOPRIGHT", -1, -s.titleheight-1)
+		
+		reset.titletext = reset:CreateFontString(nil, "ARTWORK")
+		reset.titletext:SetFont(s.titlefont, s.titlefontsize, "OUTLINE")
+		reset.titletext:SetTextColor(s.titlefontcolor[1], s.titlefontcolor[2], s.titlefontcolor[3], 1)
+		reset.titletext:SetText("nMeter: Reset Data?")
+		reset.titletext:SetPoint("TOPLEFT", 5, -2)
+		
+		reset.yes = CreateFrame("Button", nil, reset)
+		reset.yes:SetBackdrop(backdrop)
+		reset.yes:SetBackdropColor(0, .2, 0, 1)
+		reset.yes:SetHighlightTexture([[Interface\QuestFrame\UI-QuestTitleHighlight]])
+		reset.yes:SetNormalFontObject(ChatFontSmall)
+		reset.yes:SetText("YES")
+		reset.yes:SetWidth(80)
+		reset.yes:SetHeight(18)
+		reset.yes:SetPoint("BOTTOMLEFT", 10, 5)
+		reset.yes:SetScript("OnMouseUp", function() addon:Reset() reset:Hide() end)
+		
+		reset.no = CreateFrame("Button", nil, reset)
+		reset.no:SetBackdrop(backdrop)
+		reset.no:SetBackdropColor(.2, 0, 0, 1)
+		reset.no:SetHighlightTexture([[Interface\QuestFrame\UI-QuestTitleHighlight]])
+		reset.no:SetNormalFontObject(ChatFontSmall)
+		reset.no:SetText("NO")
+		reset.no:SetWidth(80)
+		reset.no:SetHeight(18)
+		reset.no:SetPoint("BOTTOMRIGHT", -10, 5)
+		reset.no:SetScript("OnMouseUp", function() reset:Hide() end)
+	end
 
-	local title = confirm:CreateTexture(nil, "ARTWORK")
-	confirm.title = title
-		title:SetTexture([[Interface\TargetingFrame\UI-StatusBar]])
-		title:SetTexCoord(.8, 1, .8, 1)
-		title:SetVertexColor(.1, .1, .1, .9)
-		title:SetPoint("TOPLEFT", 1, -1)
-		title:SetPoint("BOTTOMRIGHT", confirm, "TOPRIGHT", -1, -s.titleheight-1)
-	local titletext = confirm:CreateFontString(nil, "ARTWORK")
-	confirm.titletext = titletext
-		titletext:SetJustifyH("LEFT")
-		titletext:SetFont(s.titlefont, s.titlefontsize, "OUTLINE")
-		titletext:SetTextColor(s.titlefontcolor[1], s.titlefontcolor[2], s.titlefontcolor[3], 1)
-		titletext:SetText("nMeter: Confirmation")
-		titletext:SetPoint("TOPLEFT", 5, -2)
-
-	return confirm
+	reset:Show()
 end

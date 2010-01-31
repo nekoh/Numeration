@@ -1,16 +1,14 @@
 --------------------------------------------------------------------------------
 -- TODO ------------------------------------------------------------------------
--- reset (also automated)
--- report
--- only enable tracking under conditions [in instances]
--- interrupts
--- [dd/dt/heal]-per second
+-- add damage done to targets / damage taken from targets / damage taken from abilities  views
+-- manual reset (+ improve automated suggesting)
 -- oh %
--- ? spell details [crit,miss]
--- ? death log
 -- remove ace
+-- report
+-- arenas
+-- tracking conditions (improve, fix)
+-- ? spell details [crit,miss]
 -- ? differentiate between over time- and direct- spells
--- only keep boss segments: make dynamic? wtf is that ?
 --------------------------------------------------------------------------------
 nMeter = LibStub("AceAddon-3.0"):NewAddon("nMeter", "AceEvent-3.0", "AceTimer-3.0")
 nMeter.views = {}
@@ -41,11 +39,16 @@ nMeter.types = {
 	{
 		name = "Friendly Fire",
 		id = "ff",
-		c = {0.63, 0.58, 0.24},
+		c = {.63, .58, .24},
 	},
 	{
 		name = "Healing",
-		id = "heal",
+		id = "hd",
+		c = {.25, .5, .85},
+	},
+	{
+		name = "Guessed Absorbs",
+		id = "ga",
 		c = {.25, .5, .85},
 	},
 	{
@@ -59,9 +62,20 @@ nMeter.types = {
 		c = {.58, .24, .63},
 	},
 	{
+		name = "Interrupts",
+		id = "ir",
+		c = {.09, .61, .55},
+	},
+	{
 		name = "Mana Gains",
 		id = "mg",
 		c = {48/255, 113/255, 191/255},
+	},
+	{
+		name = "Death Log",
+		id = "dl",
+		view = "Deathlog",
+		c = {.66, .25, .25},
 	},
 }
 
@@ -86,7 +100,25 @@ nMeter.color = {
 	DEATHKNIGHT = { 0.77, 0.12, 0.23 },
 	PET = { 0.09, 0.61, 0.55 },
 }
+nMeter.colorhex = {}
+do
+	for class, c in pairs(nMeter.color) do
+		nMeter.colorhex[class] = string.format("%02X%02X%02X", c[1] * 255, c[2] * 255, c[3] * 255)
+	end
+end
 
+nMeter.spellIcon = setmetatable({ [0] = "", [75] = "", }, { __index = function(tbl, i)
+	local spell, _, icon = GetSpellInfo(i)
+	nMeter.spellName[i] = spell
+	tbl[i] = icon
+	return icon
+end})
+nMeter.spellName = setmetatable({ [0] = "Melee", }, {__index = function(tbl, i)
+	local spell, _, icon = GetSpellInfo(i)
+	nMeter.spellIcon[i] = icon
+	tbl[i] = spell
+	return spell
+end})
 local newSet = function()
 	return {
 		unit = {},
@@ -101,26 +133,17 @@ function nMeter:OnInitialize()
 		self:Reset()
 	end
 	current = self:GetSet(1) or newSet()
-end
-
-function nMeter:OnEnable()
-	self:RegisterEvent("PARTY_MEMBERS_CHANGED")
-	self:RegisterEvent("RAID_ROSTER_UPDATE")
-	self:RegisterEvent("PLAYER_ENTERING_WORLD")
-	self:RegisterEvent("UNIT_PET")
 	
-	self:RegisterEvent("PLAYER_REGEN_DISABLED")
-	self:RegisterEvent("PLAYER_REGEN_ENABLED")
-
-	self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-
-	self:RefreshDisplay()
-	self:ScheduleRepeatingTimer("Update", s.refreshinterval)
+	self:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+	
+	self:ZONE_CHANGED_NEW_AREA()
 end
 
 function nMeter:Reset()
+	local lastZone = nMeterCharDB and nMeterCharDB.zone
 	nMeterCharDB = {
 		[0] = newSet(),
+		zone = lastZone,
 	}
 	current = newSet()
 	if self.nav.set and self.nav.set ~= "total" and self.nav.set ~= "current" then
@@ -164,7 +187,7 @@ function nMeter:Scroll(dir)
 			view.first = view.first + 1
 		end
 	end
-	nMeter:RefreshDisplay(true)
+	self:RefreshDisplay(true)
 end
 
 function nMeter:GetArea(start, total)
@@ -197,10 +220,35 @@ function nMeter:GetSets()
 	return nMeterCharDB[0], current.active and current
 end
 
+function nMeter:GetUnitClass(playerID)
+	if not playerID then return end
+	
+	local class = self.guids[playerID]
+	if self.names[class] then
+		return "PET"
+	end
+	return class
+end
+
 function nMeter:GetUnit(set, playerID, playerName)
+	if not playerID then
+		local u = set.unit[playerName]
+		if not u then
+			local utotal = nMeterCharDB[0].unit[playerName]
+			if utotal then
+				u = {
+					name = playerName,
+					class = utotal.class,
+				}
+				set.unit[playerName] = u
+			end
+		end
+		return u
+	end
+	
 	local class = self.guids[playerID]
 	local ownerName = self.names[class]
-
+	
 	if not ownerName then
 		-- unit
 		local u = set.unit[playerName]
@@ -240,6 +288,8 @@ do
 		= UnitGUID, UnitName, UnitClass
 	local addPlayerPet = function(unit, pet)
 		local unitID = UnitGUID(unit)
+		if not unitID then return end
+		
 		local unitName = UnitName(unit)
 		local _, unitClass = UnitClass(unit)
 		local petID = UnitGUID(pet)
@@ -279,12 +329,64 @@ do
 				summonguids[pid] = nil
 			end
 		end
+		self:GUIDsUpdated()
 	end
 end
 nMeter.PLAYER_ENTERING_WORLD = nMeter.UpdateGUIDS
 nMeter.PARTY_MEMBERS_CHANGED = nMeter.UpdateGUIDS
 nMeter.RAID_ROSTER_UPDATE = nMeter.UpdateGUIDS
 nMeter.UNIT_PET = nMeter.UpdateGUIDS
+function nMeter:ZONE_CHANGED_NEW_AREA()
+	local _, zoneType = IsInInstance()
+	print("!ZCNA!", _, zoneType, GetRealZoneText())
+
+	if zoneType ~= self.zoneType then
+		self.zoneType = zoneType
+		
+		if zoneType == "party" or zoneType == "raid" then
+			local curZone = GetRealZoneText()
+			if curZone ~= nMeterCharDB.zone then
+				print("!RESET! ", nMeterCharDB.zone, "->", curZone)
+				nMeterCharDB.zone = curZone
+				nMeter.window:ShowResetWindow()
+			end
+			print("!PR! enable events")
+			self:UpdateGUIDS()
+			
+			self:RegisterEvent("PLAYER_ENTERING_WORLD")
+			self:RegisterEvent("PARTY_MEMBERS_CHANGED")
+			self:RegisterEvent("RAID_ROSTER_UPDATE")
+			self:RegisterEvent("UNIT_PET")
+			
+			self:RegisterEvent("PLAYER_REGEN_DISABLED")
+			self:RegisterEvent("PLAYER_REGEN_ENABLED")
+
+			self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+
+			self.updateTimer = self:ScheduleRepeatingTimer("Update", s.refreshinterval)
+			self:RefreshDisplay()
+			self.window:Show()
+		else
+			print("!WORLD! disable events")
+			self:UnregisterEvent("PLAYER_ENTERING_WORLD")
+			self:UnregisterEvent("PARTY_MEMBERS_CHANGED")
+			self:UnregisterEvent("RAID_ROSTER_UPDATE")
+			self:UnregisterEvent("UNIT_PET")
+			
+			self:UnregisterEvent("PLAYER_REGEN_DISABLED")
+			self:UnregisterEvent("PLAYER_REGEN_ENABLED")
+			
+			self:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+			self:CancelTimer(self.updateTimer, true)
+			if zoneType == "none" then
+				self:RefreshDisplay()
+				self.window:Show()
+			else
+				self.window:Hide()
+			end
+		end
+	end
+end
 
 local inCombat = nil
 local combatTimer = nil
@@ -298,52 +400,89 @@ function nMeter:PLAYER_REGEN_ENABLED()
 	combatTimer = self:ScheduleTimer("LeaveCombatEvent", s.combatseconds)
 end
 
-local bossNames = {
+local bossIds = {
 	-- Naxxramas
-	["Anub'Rekhan"] = true,
-	["Grand Widow Faerlina"] = true,
-	["Maexxna"] = true,
-	["Noth the Plaguebringer"] = true,
-	["Heigan the Unclean"] = true,
-	["Loatheb"] = true,
-	["Instructor Razuvious"] = true,
-	["Gothik the Harvester"] = true,
-	["Thane Korth'azz"] = "The Four Horsemen",
-	["Lady Blaumeux"] = "The Four Horsemen",
-	["Baron Rivendare"] = "The Four Horsemen",
-	["Sir Zeliek"] = "The Four Horsemen",
-	["Patchwerk"] = true,
-	["Grobbulus"] = true,
-	["Gluth"] = true,
-	["Thaddius"] = true,
-	["Sapphiron"] = true,
-	["Kel'Thuzad"] = true,
+	[15956] = true, -- Anub'Rekhan
+	[15953] = true, -- Grand Widow Faerlina
+	[15952] = true, -- Maexxna
+	[15954] = true, -- Noth the Plaguebringer
+	[15936] = true, -- Heigan the Unclean
+	[16011] = true, -- Loatheb
+	[16061] = true, -- Instructor Razuvious
+	[16060] = true, -- Gothik the Harvester
+	[16064] = "The Four Horsemen", -- Thane Korth'azz
+	[16065] = "The Four Horsemen", -- Lady Blaumeux
+	[30549] = "The Four Horsemen", -- Baron Rivendare
+	[16063] = "The Four Horsemen", -- Sir Zeliek
+	[16028] = true, -- Patchwerk
+	[15931] = true, -- Grobbulus
+	[15932] = true, -- Gluth
+	[15928] = true, -- Thaddius
+	[15989] = true, -- Sapphiron
+	[15990] = true, -- Kel'Thuzad
 	-- The Eye of Eternity
-	["Malygos"] = true,
+	[28859] = true, -- Malygos
 	-- The Obsidian Sanctum
-	["Sartharion"] = true,
+	[28860] = true, -- Sartharion
 	-- Vault of Archavon
-	["Archavon the Stone Watcher"] = true,
+	[31125] = true, -- Archavon the Stone Watcher
+	[33993] = true, -- Emalon the Storm Watcher
+	[35013] = true, -- Koralon the Flame Watcher
 	-- Ulduar
-	["Flame Leviathan"] = true,
-	["Razorscale"] = true,
-	["XT-002 Deconstructor"] = true,
-	["Ignis the Furnace Master"] = true,
-	["Steelbreaker"] = "Assembly of Iron",
-	["Runemaster Molgeim"] = "Assembly of Iron",
-	["Stormcaller Brundir"] = "Assembly of Iron",
-	["Kologarn"] = true,
-	["Auriaya"] = true,
-	["Mimiron"] = true,
-	["Leviathan Mk II"] = "Mimiron",
-	["Hodir"] = true,
-	["Thorim"] = true,
-	["Freya"] = true,
-	["General Vezax"] = true,
-	["Guardian of Yogg-Saron"] = "Yogg-Saron",
-	["Algalon the Observer"] = true,
+	[33113] = true, -- Flame Leviathan
+	[33118] = true, -- Ignis the Furnace Master
+	[33186] = true, -- Razorscale
+	[33293] = true, -- XT-002 Deconstructor
+	[32867] = "Assembly of Iron", -- Steelbreaker
+	[32927] = "Assembly of Iron", -- Runemaster Molgeim
+	[32857] = "Assembly of Iron", -- Stormcaller Brundir
+	[32930] = true, -- Kologarn
+	[33515] = true, -- Auriaya
+	[32906] = true, -- Freya
+	[32845] = true, -- Hodir
+	[33432] = "Mimiron", -- Leviathan Mk II
+	[33651] = "Mimiron", -- VX-001
+	[33670] = "Mimiron", -- Aerial Command Unit
+	[32865] = true, -- Thorim
+	[33271] = true, -- General Vezax
+	[33136] = "Yogg-Saron", -- Guardian of Yogg-Saron
+	[33288] = true, -- Yogg-Saron
+	[32871] = true, -- Algalon the Observer
+	-- Trial of the Crusader
+	[34796] = "Northrend Beasts", -- Gormok the Impaler
+	[35144] = "Northrend Beasts", -- Acidmaw
+	[34799] = "Northrend Beasts", -- Dreadscale
+	[34797] = "Northrend Beasts", -- Icehowl
+	[34780] = true, -- Lord Jaraxxus
+	[34469] = "Faction Champions", -- Melador Valestrider <Druid>
+	[34459] = "Faction Champions", -- Erin Misthoof <Druid>
+	[34465] = "Faction Champions", -- Velanaa <Paladin>
+	[34445] = "Faction Champions", -- Liandra Suncaller <Paladin>
+	[34466] = "Faction Champions", -- Anthar Forgemender <Priest>
+	[34447] = "Faction Champions", -- Caiphus the Stern <Priest>
+	[34470] = "Faction Champions", -- Saamul <Shaman>
+	[34444] = "Faction Champions", -- Thrakgar <Shaman>
+	[34497] = "Twin Val'kyr", -- Fjola Lightbane
+	[34496] = "Twin Val'kyr", -- Eydis Darkbane
+	[34564] = true, -- Anub'arak
+	-- Onyxia's Lair
+	[10184] = true, -- Onyxia
+	-- Icecrown Citadel
+	[36612] = true, -- Lord Marrowgar
+	[36855] = true, -- Lady Deathwhisper
+	[37813] = true, -- Deathbringer Saurfang
+	[36626] = true, -- Festergut
+	[36627] = true, -- Rotface
+	[36678] = true, -- Professor Putricide
+	[37972] = "Blood Prince Council", -- Prince Keleseth
+	[37973] = "Blood Prince Council", -- Prince Taldaram
+	[37970] = "Blood Prince Council", -- Prince Valanar
+	[37955] = true, -- Blood-Queen Lana'thel
+	[36789] = true, -- Valithria Dreamwalker
+	[37755] = true, -- Sindragosa
+	[29983] = true, -- The Lich King
 }
-function nMeter:EnterCombatEvent(timestamp, name)
+function nMeter:EnterCombatEvent(timestamp, guid, name)
 	if not current.active then
 		current = newSet()
 		current.start = timestamp
@@ -352,8 +491,9 @@ function nMeter:EnterCombatEvent(timestamp, name)
 	
 	current.now = timestamp
 	if not current.boss then
-		if bossNames[name] then
-			current.name = bossNames[name] == true and name or bossNames[name]
+		local mobid = bossIds[tonumber(guid:sub(9, 12), 16)]
+		if mobid then
+			current.name = mobid == true and name or mobid
 			current.boss = true
 		elseif not current.name then
 			current.name = name
@@ -372,7 +512,7 @@ function nMeter:LeaveCombatEvent()
 			return
 		end
 		tinsert(nMeterCharDB, 1, current)
-		if self.nav.set and self.nav.set ~= "total" and self.nav.set ~= "current" then
+		if type(self.nav.set) == "number" then
 			self.nav.set = self.nav.set + 1
 		end
 		
@@ -390,10 +530,7 @@ function nMeter:COMBAT_LOG_EVENT_UNFILTERED(e, timestamp, eventtype, srcGUID, sr
 
 	local ownerClassOrGUID = self.guids[srcGUID]
 	if eventtype == 'SPELL_SUMMON' and ownerClassOrGUID then
-		local realSrcGUID = srcGUID
-		if self.guids[ownerClassOrGUID] then
-			realSrcGUID = ownerClassOrGUID
-		end
+		local realSrcGUID = self.guids[ownerClassOrGUID] and ownerClassOrGUID or srcGUID
 		summonguids[dstGUID] = realSrcGUID
 		self.guids[dstGUID] = realSrcGUID
 	elseif eventtype == 'UNIT_DIED' and summonguids[srcGUID] then

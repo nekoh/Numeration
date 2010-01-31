@@ -1,4 +1,4 @@
-## Interface: 30000
+## Interface: 30300
 ## Title: |cff4080d9n|rMeter
 
 ## Notes: Meter for various data
@@ -15,3 +15,5 @@ Views\Type.lua
 Views\Standard.lua
 Views\Spell.lua
 Views\Target.lua
+Views\Deathlog.lua
+Views\DeathlogDetail.lua

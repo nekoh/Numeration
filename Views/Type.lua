@@ -11,7 +11,7 @@ local backAction = function(f)
 end
 
 local detailAction = function(f)
-	addon.nav.view = 'Standard'
+	addon.nav.view = addon.types[f.typeid].view or 'Standard'
 	addon.nav.type = f.typeid
 	addon:RefreshDisplay()
 end
@@ -34,8 +34,8 @@ function view:Update()
 		local c = t.c
 		
 		line:SetValues(1, 1)
-		line:SetLeftText(" "..t.name)
-		line:SetRightText(set[t.id] or "0")
+		line:SetLeftText(" %s", t.name)
+		line:SetRightText(set[t.id] or "")
 		line:SetColor(c[1], c[2], c[3])
 		line.typeid = i
 		line:SetDetailAction(detailAction)
