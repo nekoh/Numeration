@@ -1,8 +1,9 @@
 --------------------------------------------------------------------------------
 -- TODO ------------------------------------------------------------------------
 -- scroll bar indicator
--- add damage done to targets / damage taken from targets / damage taken from abilities  views
+-- add damage taken from abilities view
 -- manual reset (+ improve automated suggesting)
+-- manual petmerge toggle
 -- oh %
 -- remove ace
 -- report
@@ -33,8 +34,21 @@ nMeter.types = {
 		c = {.25, .66, .35},
 	},
 	{
-		name = "Damage Taken",
+		name = "Damage Targets",
+		id = "dd",
+		view = "Targets",
+		c = {.25, .66, .35},
+	},
+	{
+		name = "Damage Taken Targets",
 		id = "dt",
+		view = "Targets",
+		c = {.66, .25, .25},
+	},
+	{
+		name = "Damage Taken Abilities",
+		id = "dt",
+		view = "Spells",
 		c = {.66, .25, .25},
 	},
 	{
@@ -82,7 +96,7 @@ nMeter.types = {
 
 -- Navigation
 nMeter.nav = {
-	view = 'Standard',
+	view = 'Units',
 	set = 'current',
 	type = 1,
 }

@@ -1,6 +1,6 @@
 local addon = nMeter
 local view = {}
-addon.views["Standard"] = view
+addon.views["Units"] = view
 view.first = 1
 
 local backAction = function(f)
@@ -11,7 +11,7 @@ local backAction = function(f)
 end
 
 local detailAction = function(f)
-	addon.nav.view = 'Spell'
+	addon.nav.view = 'UnitSpells'
 	addon.nav.unit = f.unit
 	addon:RefreshDisplay()
 end

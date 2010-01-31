@@ -11,7 +11,7 @@ local backAction = function(f)
 end
 
 local detailAction = function(f)
-	addon.nav.view = addon.types[f.typeid].view or 'Standard'
+	addon.nav.view = addon.types[f.typeid].view or 'Units'
 	addon.nav.type = f.typeid
 	addon:RefreshDisplay()
 end

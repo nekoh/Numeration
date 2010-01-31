@@ -12,8 +12,16 @@ Window.lua
 
 Views\Sets.lua
 Views\Type.lua
-Views\Standard.lua
-Views\Spell.lua
-Views\Target.lua
+
+Views\Units.lua
+Views\UnitSpells.lua
+Views\UnitTargets.lua
+
+Views\Targets.lua
+Views\TargetUnits.lua
+
+Views\Spells.lua
+Views\SpellUnits.lua
+
 Views\Deathlog.lua
 Views\DeathlogDetail.lua
