@@ -1,5 +1,6 @@
 --------------------------------------------------------------------------------
 -- TODO ------------------------------------------------------------------------
+-- scroll bar indicator
 -- add damage done to targets / damage taken from targets / damage taken from abilities  views
 -- manual reset (+ improve automated suggesting)
 -- oh %

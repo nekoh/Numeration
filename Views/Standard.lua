@@ -23,95 +23,89 @@ function view:Init()
 	addon.window:SetBackAction(backAction)
 end
 
-local amountWithPets = function(set, unit, vtype, vtypet)
-	if unit.owner then return end
-	local value, valuet = unit[vtype], unit[vtypet]
-	if unit.pets then
-		for name,v in pairs(unit.pets) do
-			local amount, amountt = set.unit[name][vtype], set.unit[name][vtypet]
-			if amount then
-				value = (value or 0) + amount
-				if amountt and (not valuet or amountt > valuet) then
-					valuet = amountt
+local nameToValue = {}
+local nameToTime = {}
+local calcValueTime = function(set, name, etype, merged)
+	local u = set.unit[name]
+	local value = u[etype] and u[etype].total or 0
+	local time = u[etype] and u[etype].time or 0
+	if merged and u.pets then
+		for petname,v in pairs(u.pets) do
+			local pu_event = set.unit[petname][etype]
+			if pu_event then
+				value = value + pu_event.total
+				if pu_event.time and pu_event.time > time then
+					time = pu_event.time
 				end
 			end
 		end
 	end
-	return value, valuet
+	nameToValue[name] = value
+	nameToTime[name] = time
 end
 
--- sortfunc
-local what = nil
-local sorter = function(u1, u2)
-	return u1[what] > u2[what]
+local sorter = function(n1, n2)
+	return nameToValue[n1] > nameToValue[n2]
 end
 
 local sorttbl = {}
-function view:Update(merge)
+function view:Update(merged)
 	local set = addon:GetSet(addon.nav.set)
 	if not set then return end
-	
-	what = addon.types[addon.nav.type].id
-	local total = set[what]
-	local whatt = string.format("%st", what)
+	local etype = addon.types[addon.nav.type].id
 	
 	-- compile and sort information table
-	sorttbl = wipe(sorttbl)
-	local id = 0
+	local total = 0
 	for name,u in pairs(set.unit) do
-		if merge then
-			local amount, amountt = amountWithPets(set, u, what, whatt)
-			if amount then
-				id = id + 1
-				u.merged = amount
-				u.mergedt = amountt
-				sorttbl[id] = u
-			end
-		elseif u[what] then
-			id = id + 1
-			sorttbl[id] = u
+		if u[etype] then
+			total = total + u[etype].total
 		end
-	end
-	if merge then
-		what = 'merged'
-		whatt = 'mergedt'
+		if not merged or not u.owner then
+			if u[etype] then
+				calcValueTime(set, name, etype, merged)
+				tinsert(sorttbl, name)
+			elseif u.pets then
+				for petname,v in pairs(u.pets) do
+					if set.unit[petname][etype] then
+						calcValueTime(set, name, etype, merged)
+						tinsert(sorttbl, name)
+						break
+					end
+				end
+			end
+		end
 	end
 	table.sort(sorttbl, sorter)
 	
 	-- display
 	self.first, self.last = addon:GetArea(self.first, #sorttbl)
 	if not self.last then return end
-
-	local maxvalue = sorttbl[1][what]
+	
+	local maxvalue = nameToValue[sorttbl[1]]
 	for i = self.first, self.last do
-		local u = sorttbl[i]
-		local line = addon.window:GetLine(i-self.first)
-		local value = u[what]
-		local t = u[whatt]
+		local u = set.unit[sorttbl[i]]
+		local value, time = nameToValue[u.name], nameToTime[u.name]
 		local c = addon.color[u.class]
 		
+		local line = addon.window:GetLine(i-self.first)
 		line:SetValues(value, maxvalue)
 		if u.owner then
 			line:SetLeftText("%i. %s <%s>", i, u.name, u.owner)
 		else
 			line:SetLeftText("%i. %s", i, u.name)
 		end
-		if t then
-			line:SetRightText("%i (%.1f, %02.1f%%)", value, value/t, value/total*100)
+		if time ~= 0 then
+			line:SetRightText("%i (%.1f, %02.1f%%)", value, value/time, value/total*100)
 		else
 			line:SetRightText("%i (%02.1f%%)", value, value/total*100)
 		end
 		line:SetColor(c[1], c[2], c[3])
-		line.unit = u
+		line.unit = u.name
 		line:SetDetailAction(detailAction)
 		line:Show()
 	end
 	
-	-- cleanup
-	if merge then
-		for i,v in ipairs(sorttbl) do
-			v.merged = nil
-			v.mergedt = nil
-		end
-	end
+	sorttbl = wipe(sorttbl)
+	nameToValue = wipe(nameToValue)
+	nameToTime = wipe(nameToTime)
 end

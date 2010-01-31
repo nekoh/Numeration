@@ -373,86 +373,72 @@ local AbsorbSpellDuration = {
 	[67261] = 15, -- 1200000
 }
 
-local shields = {}
-
-local function addStat(set, unit, stype, amount)
-	set[stype] = (set[stype] or 0) + amount
-	unit[stype] = (unit[stype] or 0) + amount
-end
-local function addSpellDetails(u, stype, spellID, amount)
-	if not u.spell then u.spell = {} end
-	
-	local s = u.spell[spellID]
-	if not s then
-		s = {
-			[stype] = amount
+local function addSpellDetails(u, etype, spellID, amount)
+	local event = u[etype]
+	if not event then
+		event = {
+			total=amount,
+			spell={},
 		}
-		u.spell[spellID] = s
+		u[etype] = event
 	else
-		s[stype] = (s[stype] or 0) + amount
+		event.total = event.total+amount
 	end
-end
-local function addTargetDetails(u, stype, targetName, amount)
-	if not targetName then targetName = 'Unknown' end
-	if not u.target then u.target = {} end
 	
-	local s = u.target[targetName]
-	if not s then
-		s = {
-			[stype] = amount
-		}
-		u.target[targetName] = s
-	else
-		s[stype] = (s[stype] or 0) + amount
+	event.spell[spellID] = (event.spell[spellID] or 0) + amount
+end
+local function addTargetDetails(u, etype, targetName, amount)
+	local t = u[etype].target
+	if not t then
+		t = {}
+		u[etype].target = t
 	end
+	
+	t[targetName] = (t[targetName] or 0) + amount
 end
 
-local function EVENT(stype, playerID, playerName, targetName, spellID, amount)
+local function EVENT(etype, playerID, playerName, targetName, spellID, amount)
 	local all, atm = addon:GetSets()
 
 	-- Total Set
 	all.changed = true
 	local u = addon:GetUnit(all, playerID, playerName)
-	addStat(all, u, stype, amount)
-	addSpellDetails(u, stype, spellID, amount)
+	addSpellDetails(u, etype, spellID, amount)
 
 	-- Current Set
 	if not atm then return end
 	atm.changed = true
 	local u = addon:GetUnit(atm, playerID, playerName)
-	addStat(atm, u, stype, amount)
-	addSpellDetails(u, stype, spellID, amount)
-	addTargetDetails(u, stype, targetName, amount)
+	addSpellDetails(u, etype, spellID, amount)
+	addTargetDetails(u, etype, targetName, amount)
 end
 
-local fmt = string.format
-local function updateTime(keyt, keylast, now, unit)
-	local last = unit[keylast]
-	unit[keylast] = now
+local function updateTime(u, etype, timestamp)
+	local last = u[etype].last
+	u[etype].last = now
 	if not last then return end
 	
-	local t = unit[keyt] or 0
-	local gap = now-last
+	local t = u[etype].time or 0
+	local gap = timestamp-last
 	if gap < 5 then
 		t = t + gap
 	else
 		t = t + 1
 	end
-	unit[keyt] = t
+	u[etype].time = t
 end
-local function TIMEEVENT(stype, timestamp, playerID, playerName)
+local function TIMEEVENT(etype, timestamp, playerID, playerName)
 	local all, atm = addon:GetSets()
-	local keyt = fmt("%st", stype)
-	local keylast = fmt("%slast", stype)
 
 	-- Total Set
-	updateTime(keyt, keylast, timestamp, addon:GetUnit(all, playerID, playerName))
+	updateTime(addon:GetUnit(all, playerID, playerName), etype, timestamp)
 
 	-- Current Set
 	if not atm then return end
-	updateTime(keyt, keylast, timestamp, addon:GetUnit(atm, playerID, playerName))
+	updateTime(addon:GetUnit(atm, playerID, playerName), etype, timestamp)
 end
 
+local shields = {}
 local function findAbsorber(timestamp, dstName, amount)
 	if not shields[dstName] then return end
 	local mintime = 60

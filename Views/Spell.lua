@@ -16,58 +16,61 @@ local detailAction = function(f)
 end
 
 function view:Init()
-	local v = addon.types[addon.nav.type]
-	local unit = addon.nav.unit
+	local set = addon:GetSet(addon.nav.set)
+	if not set then backAction() return end
+	local u = set.unit[addon.nav.unit]
+	if not u then backAction() return end
+	
+	local t = addon.types[addon.nav.type]
 	local text
-	if unit.owner then
-		text = format("%s: %s <%s>", v.name, unit.name, unit.owner)
+	if u.owner then
+		text = format("%s: %s <%s>", t.name, u.name, u.owner)
 	else
-		text = format("%s: %s", v.name, unit.name)
+		text = format("%s: %s", t.name, u.name)
 	end
-	addon.window:SetTitle(text, v.c[1], v.c[2], v.c[3])
+	addon.window:SetTitle(text, t.c[1], t.c[2], t.c[3])
 	addon.window:SetBackAction(backAction)
 end
 
--- sortfunc
-local what = nil
-local sorter = function(s1, s2)
-	return s1[what] > s2[what]
+local sorttbl = {}
+local nameToValue = {}
+local nameToUnit = {}
+local nameToId = {}
+local sorter = function(n1, n2)
+	return nameToValue[n1] > nameToValue[n2]
 end
 
 local spellName = addon.spellName
 local spellIcon = addon.spellIcon
-local sorttbl = {}
-function view:Update(merge)
+function view:Update(merged)
 	local set = addon:GetSet(addon.nav.set)
-	if not set then return end
-	local unit = addon.nav.unit
-
-	what = addon.types[addon.nav.type].id
-	local total = unit[what] or 0
-	-- sort
-	sorttbl = wipe(sorttbl)
-	local id = 0
-	if unit.spell then
-		for spellID,s in pairs(unit.spell) do
-			if s[what] then
-				id = id + 1
-				s.id = spellID
-				sorttbl[id] = s
-			end
+	if not set then backAction() return end
+	local u = set.unit[addon.nav.unit]
+	if not u then backAction() return end
+	local etype = addon.types[addon.nav.type].id
+	
+	-- compile and sort information table
+	local total = 0
+	if u[etype] then
+		total = u[etype].total
+		for id, amount in pairs(u[etype].spell) do
+			local name = format("%s%i", u.name, id)
+			nameToValue[name] = amount
+			nameToId[name] = id
+			tinsert(sorttbl, name)
 		end
 	end
-	if merge and unit.pets then
-		for name,v in pairs(unit.pets) do
-			local u = set.unit[name]
-			if u.spell then
-				for spellID,s in pairs(u.spell) do
-					if s[what] then
-						id = id + 1
-						s.id = spellID
-						s.pet = u.name
-						sorttbl[id] = s
-						total = total + s[what]
-					end
+	if merged and u.pets then
+		for petname,v in pairs(u.pets) do
+			local pu = set.unit[petname]
+			if pu[etype] then
+				total = total + pu[etype].total
+				for id, amount in pairs(pu[etype].spell) do
+					local name = format("%s%i", pu.name, id)
+					nameToValue[name] = amount
+					nameToUnit[name] = pu
+					nameToId[name] = id
+					tinsert(sorttbl, name)
 				end
 			end
 		end
@@ -75,7 +78,7 @@ function view:Update(merge)
 	table.sort(sorttbl, sorter)
 	
 	local action = nil
-	if unit.target then
+	if u[etype].target then
 		action = detailAction
 		addon.window:SetDetailAction(action)
 	end
@@ -84,18 +87,19 @@ function view:Update(merge)
 	if not self.last then return end
 	
 	local c = addon.color[unit.class]
-	local maxvalue = sorttbl[1][what]
+	local maxvalue = nameToValue[sorttbl[1]]
 	for i = self.first, self.last do
-		local s = sorttbl[i]
+		local pu = nameToUnit[sorttbl[i]]
+		local value = nameToValue[sorttbl[i]]
+		local id = nameToId[sorttbl[i]]
+		local name, icon = spellName[id], spellIcon[id]
+		
+		if id == 0 or id == 75 then icon = "" end
+		
 		local line = addon.window:GetLine(i-self.first)
-		local value = s[what]
-		local name, icon = spellName[s.id], spellIcon[s.id]
-		
-		if s.id == 0 or s.id == 75 then icon = "" end
-		
 		line:SetValues(value, maxvalue)
-		if s.pet then
-			line:SetLeftText("%s <%s>", name, s.pet)
+		if pu then
+			line:SetLeftText("%s <%s>", name, pu.name)
 		else
 			line:SetLeftText(name)
 		end
@@ -106,9 +110,8 @@ function view:Update(merge)
 		line:Show()
 	end
 	
-	-- cleanup
-	for i,v in ipairs(sorttbl) do
-		v.id = nil
-		v.pet = nil
-	end
+	sorttbl = wipe(sorttbl)
+	nameToValue = wipe(nameToValue)
+	nameToUnit = wipe(nameToUnit)
+	nameToId = wipe(nameToId)
 end

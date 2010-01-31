@@ -35,7 +35,17 @@ function view:Update()
 		
 		line:SetValues(1, 1)
 		line:SetLeftText(" %s", t.name)
-		line:SetRightText(set[t.id] or "")
+		local amount = 0
+		for name, u in pairs(set.unit) do
+			if u[t.id] then
+				amount = amount + u[t.id].total
+			end
+		end
+		if amount ~= 0 then
+			line:SetRightText(amount)
+		else
+			line:SetRightText("")
+		end
 		line:SetColor(c[1], c[2], c[3])
 		line.typeid = i
 		line:SetDetailAction(detailAction)
