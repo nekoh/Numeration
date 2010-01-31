@@ -139,10 +139,19 @@ function window:Clear()
 	self:SetDetailAction()
 	for id,line in pairs(lines) do
 		line:SetIcon()
+		line.spellId = nil
 		line:Hide()
 	end
 end
 
+local onEnter = function(self)
+	if not self.spellId then return end
+	GameTooltip:SetOwner(self, "ANCHOR_BOTTOMRIGHT", 4, s.lineheight)
+	GameTooltip:SetHyperlink("spell:"..self.spellId)
+end
+local onLeave = function(self)
+	GameTooltip:Hide()
+end
 function window:GetLine(id)
 	if lines[id] then return lines[id] end
 	
@@ -151,6 +160,8 @@ function window:GetLine(id)
 		f:EnableMouse(true)
 		f.detailAction = noop
 		f:SetScript("OnMouseDown", clickFunction)
+		f:SetScript("OnEnter", onEnter)
+		f:SetScript("OnLeave", onLeave)
 		f:SetStatusBarTexture(s.linetexture)
 		f:SetStatusBarColor(.6, .6, .6, 1)
 		f:SetWidth(s.width-4)

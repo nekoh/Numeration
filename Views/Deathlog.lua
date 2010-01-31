@@ -49,6 +49,7 @@ eventInfo.DEATH = function(event, playerName, class, spellId, srcName, spellScho
 	local icon
 	local text
 	if spellId == "" then
+		spellId = nil
 		icon = [[Interface\TargetingFrame\UI-TargetingFrame-Skull]]
 		text = string.format("|cff%s%s|r", colorhex[class], playerName)
 	else
@@ -56,12 +57,13 @@ eventInfo.DEATH = function(event, playerName, class, spellId, srcName, spellScho
 		icon = spellIcon[spellId]
 		text = string.format("|cff%s%s|r < |cffFF0000%+d|r [%s - |cff%s%s|r]", colorhex[class], playerName, -tonumber(amount), srcName, schoolColor[spellSchool] or "FFFF00", spellName[spellId])
 	end
-	return icon, text
+	return icon, text, spellId
 end
 eventInfo.REZZ = function(event, playerName, class, spellId, rezzerName)
-	local icon = spellIcon[tonumber(spellId)] -- [[Interface\Icons\Spell_Holy_Resurrection]]
+	spellId = tonumber(spellId)
+	local icon = spellIcon[spellId]
 	local text = string.format("|cff%s%s|r < [%s - |cff4080D9%s|r]", colorhex[class], playerName, rezzerName, spellName[spellId])
-	return icon, text
+	return icon, text, spellId
 end
 function view:Update()
 	local set = addon:GetSet(addon.nav.set)
@@ -79,11 +81,12 @@ function view:Update()
 		local line = addon.window:GetLine(#dl-self.first+1-i)
 		
 		local playerName, class, event, info = strsplit("#", entry[0])
-		local icon, text = eventInfo[event](event, playerName, class, strsplit(":", info))
+		local icon, text, spellId = eventInfo[event](event, playerName, class, strsplit(":", info))
 		local c = eventColors[event]
 		
 		line:SetValues(set.start and (entry.time-set.start) or 1, total)
 		line:SetIcon(icon)
+		line.spellId = spellId
 		line:SetLeftText(text)
 		line:SetRightText("")
 		if set.start then

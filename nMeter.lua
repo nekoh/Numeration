@@ -2,7 +2,6 @@
 -- TODO ------------------------------------------------------------------------
 -- manual reset (+ improve automated suggesting)
 -- manual petmerge toggle
--- spellid tooltips
 -- clip title text
 -- remove ace
 -- window: icon view -> bar does not starts under icon
@@ -12,6 +11,7 @@
 -- tracking conditions (improve, fix)
 -- ? spell details [crit,miss]
 -- ? differentiate between over time- and direct- spells
+-- /run SetCVar('uiScale', 768 / 1050)
 --------------------------------------------------------------------------------
 nMeter = LibStub("AceAddon-3.0"):NewAddon("nMeter", "AceEvent-3.0", "AceTimer-3.0")
 nMeter.views = {}

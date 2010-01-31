@@ -112,6 +112,7 @@ function view:Update()
 			line:SetColor(c[1], c[2], c[3])
 		end
 		line:SetIcon(icon)
+		line.spellId = spellId ~= 0 and spellId or nil
 		line:SetLeftText("|cffAAAAAA%s|r%s", rtime, text)
 		line:SetRightText("%s%%", healthpct)
 		line:SetDetailAction(nil)

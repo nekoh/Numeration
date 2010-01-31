@@ -16,9 +16,9 @@ end
 
 local getDuration = function(duration)
 	if duration > 60 then
-		return format("%i:%.1f", math.floor(duration/60), duration%60)
+		return format("%im%is", math.floor(duration/60), math.ceil(duration%60))
 	else
-		return format("%.1f", duration%60)
+		return format("%is", math.ceil(duration%60))
 	end
 end
 
