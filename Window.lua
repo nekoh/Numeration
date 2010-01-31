@@ -60,6 +60,7 @@ function window:OnInitialize()
 		scroll:Hide()
 	
 	local reset = CreateFrame("Button", nil, self)
+	self.reset = reset
 		reset:SetBackdrop(backdrop)
 		reset:SetBackdropColor(0, 0, 0, .8)
 		reset:SetNormalFontObject(ChatFontSmall)
@@ -72,6 +73,7 @@ function window:OnInitialize()
 		reset:SetScript("OnLeave", function() reset:SetBackdropColor(0, 0, 0, .8) GameTooltip:Hide() end)
 	
 	local pets = CreateFrame("Button", nil, self)
+	self.pets = pets
 		pets:SetBackdrop(backdrop)
 		pets:SetBackdropColor(0, 0, 0, .8)
 		pets:SetNormalFontObject(ChatFontSmall)
@@ -110,7 +112,7 @@ function window:SetScrollPosition(curPos, maxPos)
 	if maxPos <= s.maxlines then return end
 	local total = s.maxlines*(s.lineheight+s.linegap)
 	self.scroll:SetHeight(s.maxlines/maxPos*total)
-	self.scroll:SetPoint("TOPLEFT", self.title, "BOTTOMRIGHT", 2, -1-(curPos-1)/maxPos*total)
+	self.scroll:SetPoint("TOPLEFT", self.reset, "BOTTOMRIGHT", 2, -1-(curPos-1)/maxPos*total)
 	self.scroll:Show()
 end
 
