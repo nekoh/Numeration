@@ -1,4 +1,4 @@
-local addon = nMeter
+local addon = select(2, ...)
 local window = CreateFrame("Frame", nil, UIParent)
 addon.window = window
 
@@ -35,6 +35,7 @@ local clickFunction = function(self, btn)
 		backAction(self)
 	end
 end
+
 function window:OnInitialize()
 	self.maxlines = s.maxlines
 	self:SetWidth(s.width)

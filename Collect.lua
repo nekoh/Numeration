@@ -1,4 +1,4 @@
-﻿local addon = nMeter
+﻿local addon = select(2, ...)
 local collect = {}
 addon.collect = collect
 
@@ -130,7 +130,7 @@ local fmtDeBuff = function(entry)
 end
 
 local function unitDied(timestamp, playerID, playerName)
-	local class = nMeter:GetUnitClass(playerID)
+	local class = addon:GetUnitClass(playerID)
 	if not class or class == "PET" then return end
 	if class == "HUNTER" and UnitIsFeignDeath(playerName) then return end
 	local _, set = addon:GetSets()
@@ -166,7 +166,7 @@ local function unitDied(timestamp, playerID, playerName)
 	end
 end
 local function unitRezzed(timestamp, playerID, playerName, spellId, rezzerName)
-	local class = nMeter:GetUnitClass(playerID)
+	local class = addon:GetUnitClass(playerID)
 	if not class or class == "PET" then return end
 	local _, set = addon:GetSets()
 	if not set then return end
@@ -186,7 +186,7 @@ local function unitRezzed(timestamp, playerID, playerName, spellId, rezzerName)
 end
 
 local addEvt = function(playerID, playerName, fmtFunc, timestamp, ...)
-	local class = nMeter:GetUnitClass(playerID)
+	local class = addon:GetUnitClass(playerID)
 	if not class or class == "PET" then return end
 	local entry = tremove(tblCache) or {}
 	entry.hp = ((UnitHealth(playerName)/UnitHealthMax(playerName)) * 100)

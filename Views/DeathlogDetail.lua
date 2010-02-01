@@ -1,4 +1,4 @@
-local addon = nMeter
+local addon = select(2, ...)
 local view = {}
 addon.views["Deathlog-Detail"] = view
 view.first = 999
@@ -15,7 +15,7 @@ local backAction = function(f)
 end
 
 function view:Init()
-	local v = nMeter.types[addon.nav.type]
+	local v = addon.types[addon.nav.type]
 	addon.window:SetTitle(v.name, v.c[1], v.c[2], v.c[3])
 	addon.window:SetBackAction(backAction)
 

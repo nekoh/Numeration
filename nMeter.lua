@@ -1,17 +1,19 @@
+local addonname, nMeter = ...
 --------------------------------------------------------------------------------
 -- TODO ------------------------------------------------------------------------
--- remove ace
 -- window: icon view -> bar does not starts under icon
 -- oh %
 -- report
 -- arenas
--- tracking conditions (improve, fix)
--- reset (fix automated suggesting on login)
+-- ? make bottons on window more appealing
 -- ? spell details [crit,miss]
 -- ? differentiate between over time- and direct- spells
 -- /run SetCVar('uiScale', 768 / 1050)
 --------------------------------------------------------------------------------
-nMeter = LibStub("AceAddon-3.0"):NewAddon("nMeter", "AceEvent-3.0", "AceTimer-3.0")
+nMeter.events = CreateFrame("Frame")
+nMeter.events:SetScript("OnEvent", function(self, event, ...)
+	nMeter[event](nMeter, event, ...)
+end)
 nMeter.views = {}
 -- important GUIDs
 nMeter.guids = {}
@@ -143,7 +145,11 @@ local newSet = function()
 end
 local current
 
-function nMeter:OnInitialize()
+nMeter.events:RegisterEvent("ADDON_LOADED")
+function nMeter:ADDON_LOADED(event, addon)
+	if addon ~= addonname then return end
+	self.events:UnregisterEvent("ADDON_LOADED")
+	
 	self.window:OnInitialize()
 	
 	if not nMeterCharDB then
@@ -151,9 +157,11 @@ function nMeter:OnInitialize()
 	end
 	current = self:GetSet(1) or newSet()
 	
-	self:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+	self.events:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 	
-	self:ZONE_CHANGED_NEW_AREA()
+	if GetRealZoneText() ~= "" then
+		self:ZONE_CHANGED_NEW_AREA(event)
+	end
 end
 
 function nMeter:Reset()
@@ -170,6 +178,29 @@ function nMeter:Reset()
 	collectgarbage("collect")
 end
 
+local updateTimer = CreateFrame("Frame")
+updateTimer:Hide()
+updateTimer:SetScript("OnUpdate", function(self, elapsed)
+	self.timer = self.timer - elapsed
+	if self.timer > 0 then return end
+	self.timer = s.refreshinterval
+	
+	if not nMeter.nav.set then return end
+	
+	local set = nMeter:GetSet(nMeter.nav.set)
+	if not set or not set.changed then return end
+	set.changed = nil
+	
+	nMeter:RefreshDisplay(true)
+end)
+function updateTimer:Activate()
+	self.timer = s.refreshinterval
+	self:Show()
+end
+function updateTimer:Refresh()
+	self.timer = s.refreshinterval
+end
+
 function nMeter:RefreshDisplay(update)
 	self.window:Clear()
 	
@@ -177,16 +208,7 @@ function nMeter:RefreshDisplay(update)
 		self.views[self.nav.view]:Init()
 	end
 	self.views[self.nav.view]:Update(s.petsmerged)
-end
-
-function nMeter:Update()
-	if not self.nav.set then return end
-	
-	local set = self:GetSet(self.nav.set)
-	if not set or not set.changed then return end
-	set.changed = nil
-	
-	self:RefreshDisplay(true)
+	updateTimer:Refresh()
 end
 
 function nMeter:Scroll(dir)
@@ -361,7 +383,6 @@ nMeter.RAID_ROSTER_UPDATE = nMeter.UpdateGUIDS
 nMeter.UNIT_PET = nMeter.UpdateGUIDS
 function nMeter:ZONE_CHANGED_NEW_AREA()
 	local _, zoneType = IsInInstance()
-	print("!ZCNA!", _, zoneType, GetRealZoneText())
 
 	if zoneType ~= self.zoneType then
 		self.zoneType = zoneType
@@ -369,38 +390,35 @@ function nMeter:ZONE_CHANGED_NEW_AREA()
 		if zoneType == "party" or zoneType == "raid" then
 			local curZone = GetRealZoneText()
 			if curZone ~= nMeterCharDB.zone then
-				print("!RESET! ", nMeterCharDB.zone, "->", curZone)
 				nMeterCharDB.zone = curZone
 				nMeter.window:ShowResetWindow()
 			end
-			print("!PR! enable events")
 			self:UpdateGUIDS()
 			
-			self:RegisterEvent("PLAYER_ENTERING_WORLD")
-			self:RegisterEvent("PARTY_MEMBERS_CHANGED")
-			self:RegisterEvent("RAID_ROSTER_UPDATE")
-			self:RegisterEvent("UNIT_PET")
+			self.events:RegisterEvent("PLAYER_ENTERING_WORLD")
+			self.events:RegisterEvent("PARTY_MEMBERS_CHANGED")
+			self.events:RegisterEvent("RAID_ROSTER_UPDATE")
+			self.events:RegisterEvent("UNIT_PET")
 			
-			self:RegisterEvent("PLAYER_REGEN_DISABLED")
-			self:RegisterEvent("PLAYER_REGEN_ENABLED")
-
-			self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-
-			self.updateTimer = self:ScheduleRepeatingTimer("Update", s.refreshinterval)
+			self.events:RegisterEvent("PLAYER_REGEN_DISABLED")
+			self.events:RegisterEvent("PLAYER_REGEN_ENABLED")
+			
+			self.events:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+			
+			updateTimer:Activate()
 			self:RefreshDisplay()
 			self.window:Show()
 		else
-			print("!WORLD! disable events")
-			self:UnregisterEvent("PLAYER_ENTERING_WORLD")
-			self:UnregisterEvent("PARTY_MEMBERS_CHANGED")
-			self:UnregisterEvent("RAID_ROSTER_UPDATE")
-			self:UnregisterEvent("UNIT_PET")
+			self.events:UnregisterEvent("PLAYER_ENTERING_WORLD")
+			self.events:UnregisterEvent("PARTY_MEMBERS_CHANGED")
+			self.events:UnregisterEvent("RAID_ROSTER_UPDATE")
+			self.events:UnregisterEvent("UNIT_PET")
 			
-			self:UnregisterEvent("PLAYER_REGEN_DISABLED")
-			self:UnregisterEvent("PLAYER_REGEN_ENABLED")
+			self.events:UnregisterEvent("PLAYER_REGEN_DISABLED")
+			self.events:UnregisterEvent("PLAYER_REGEN_ENABLED")
 			
-			self:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-			self:CancelTimer(self.updateTimer, true)
+			self.events:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+			updateTimer:Hide()
 			if zoneType == "none" then
 				self:RefreshDisplay()
 				self.window:Show()
@@ -412,15 +430,25 @@ function nMeter:ZONE_CHANGED_NEW_AREA()
 end
 
 local inCombat = nil
-local combatTimer = nil
+local combatTimer = CreateFrame("Frame")
+combatTimer:Hide()
+combatTimer:SetScript("OnUpdate", function(self, elapsed)
+	self.timer = self.timer - elapsed
+	if self.timer > 0 then return end
+	nMeter:LeaveCombatEvent()
+	self:Hide()
+end)
+function combatTimer:Activate()
+	self.timer = s.combatseconds
+	self:Show()
+end
 function nMeter:PLAYER_REGEN_DISABLED()
 	inCombat = true
-	self:CancelTimer(combatTimer, true)
+	combatTimer:Hide()
 end
 function nMeter:PLAYER_REGEN_ENABLED()
 	inCombat = nil
-	self:CancelTimer(combatTimer, true)
-	combatTimer = self:ScheduleTimer("LeaveCombatEvent", s.combatseconds)
+	combatTimer:Activate()
 end
 
 local bossIds = {
@@ -523,8 +551,7 @@ function nMeter:EnterCombatEvent(timestamp, guid, name)
 		end
 	end
 	if not inCombat then
-		self:CancelTimer(combatTimer, true)
-		combatTimer = self:ScheduleTimer("LeaveCombatEvent", s.combatseconds)
+		combatTimer:Activate()
 	end
 end
 
