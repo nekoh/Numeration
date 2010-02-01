@@ -2,6 +2,8 @@ local addon = select(2, ...)
 local window = CreateFrame("Frame", nil, UIParent)
 addon.window = window
 
+local lines = {}
+
 -- SETTINGS
 local s = {
 	pos = { "TOPLEFT", 4, -4 },
@@ -109,17 +111,28 @@ function window:OnInitialize()
 	end)
 end
 
+function window:Clear()
+--	self:SetBackAction()
+	self.scroll:Hide()
+	self:SetDetailAction()
+	for id,line in pairs(lines) do
+		line:SetIcon()
+		line.spellId = nil
+		line:Hide()
+	end
+end
+
+function window:SetTitle(name, r, g, b)
+	self.title:SetVertexColor(r, g, b, .9)
+	self.titletext:SetText(name)
+end
+
 function window:SetScrollPosition(curPos, maxPos)
 	if maxPos <= s.maxlines then return end
 	local total = s.maxlines*(s.lineheight+s.linegap)
 	self.scroll:SetHeight(s.maxlines/maxPos*total)
 	self.scroll:SetPoint("TOPLEFT", self.reset, "BOTTOMRIGHT", 2, -1-(curPos-1)/maxPos*total)
 	self.scroll:Show()
-end
-
-function window:SetTitle(name, r, g, b)
-	self.title:SetVertexColor(r, g, b, .9)
-	self.titletext:SetText(name)
 end
 
 function window:SetBackAction(f)
@@ -135,14 +148,13 @@ local SetValues = function(f, c, m)
 	f:SetValue(c)
 end
 local SetIcon = function(f, icon)
-	f.icon:ClearAllPoints()
 	if icon then
+		f:SetWidth(s.width-s.lineheight-4)
 		f.icon:SetTexture(icon)
-		f.icon:SetPoint("LEFT")
 		f.icon:Show()
 	else
+		f:SetWidth(s.width-4)
 		f.icon:Hide()
-		f.icon:SetPoint("RIGHT", f, "LEFT")
 	end
 end
 local SetLeftText = function(f, ...)
@@ -158,18 +170,6 @@ local SetDetailAction = function(f, func)
 	f.detailAction = func or noop
 end
 window.SetDetailAction = SetDetailAction
-
-local lines = {}
-function window:Clear()
---	self:SetBackAction()
-	self.scroll:Hide()
-	self:SetDetailAction()
-	for id,line in pairs(lines) do
-		line:SetIcon()
-		line.spellId = nil
-		line:Hide()
-	end
-end
 
 local onEnter = function(self)
 	if not self.spellId then return end
@@ -194,9 +194,9 @@ function window:GetLine(id)
 		f:SetWidth(s.width-4)
 		f:SetHeight(s.lineheight)
 	if id == 0 then
-		f:SetPoint("TOPLEFT", self.title, "BOTTOMLEFT", 0, -1)
+		f:SetPoint("TOPRIGHT", self.reset, "BOTTOMRIGHT", 0, -1)
 	else
-		f:SetPoint("TOPLEFT", lines[id-1], "BOTTOMLEFT", 0, -s.linegap)
+		f:SetPoint("TOPRIGHT", lines[id-1], "BOTTOMRIGHT", 0, -s.linegap)
 	end
 	local icon = f:CreateTexture(nil, "OVERLAY")
 	f.icon = icon

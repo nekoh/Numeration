@@ -1,11 +1,11 @@
 local addonname, nMeter = ...
 --------------------------------------------------------------------------------
 -- TODO ------------------------------------------------------------------------
--- window: icon view -> bar does not starts under icon
 -- oh %
 -- report
 -- arenas
--- ? make bottons on window more appealing
+-- * make bottons on window more appealing
+-- ? healing + guessed absorbs combined
 -- ? spell details [crit,miss]
 -- ? differentiate between over time- and direct- spells
 -- /run SetCVar('uiScale', 768 / 1050)
