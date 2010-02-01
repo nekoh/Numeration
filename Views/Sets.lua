@@ -32,7 +32,7 @@ local setLine = function(lineid, setid, title)
 		line:SetLeftText("%i. %s", setid, set.name)
 	end
 	if set.start and set.now then
-		line:SetRightText("%s  %s", getDuration(set.now-set.start), date("%H:%M:%S", set.start))
+		line:SetRightText("%s  %s", getDuration(set.now-set.start), date("%H:%M", set.start))
 	else
 		line:SetRightText("")
 	end
