@@ -479,6 +479,7 @@ local bossIds = {
 	[31125] = true, -- Archavon the Stone Watcher
 	[33993] = true, -- Emalon the Storm Watcher
 	[35013] = true, -- Koralon the Flame Watcher
+	[38433] = true, -- Toravon the Ice Watcher
 	-- Ulduar
 	[33113] = true, -- Flame Leviathan
 	[33118] = true, -- Ignis the Furnace Master
@@ -529,9 +530,10 @@ local bossIds = {
 	[37973] = "Blood Prince Council", -- Prince Taldaram
 	[37970] = "Blood Prince Council", -- Prince Valanar
 	[37955] = true, -- Blood-Queen Lana'thel
-	[36789] = true, -- Valithria Dreamwalker
-	[37755] = true, -- Sindragosa
-	[29983] = true, -- The Lich King
+	[37868] = "Valithria Dreamwalker", -- Risen Archmage
+	[36853] = true, -- Sindragosa
+	[36597] = true, -- The Lich King
+	[39863] = true, -- Halion
 }
 function nMeter:EnterCombatEvent(timestamp, guid, name)
 	if not current.active then

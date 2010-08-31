@@ -7,8 +7,8 @@
 ## SavedVariablesPerCharacter: nMeterCharDB
 
 nMeter.lua
-Window.lua
 Collect.lua
+Window.lua
 
 Views\Sets.lua
 Views\Type.lua

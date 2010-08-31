@@ -20,6 +20,7 @@ local deathlogTrackBuffs = {
 	[spellName[48707]] = true, -- Anti-Magic Shell
 	[spellName[48792]] = true, -- Icebound Fortitude
 	[spellName[54223]] = true, -- Shadow of Death
+	[spellName[55233]] = true, -- Vampiric Blood
 	-- DRUID
 	[spellName[22812]] = true, -- Barkskin
 	[spellName[61336]] = true, -- Survival Instincts
