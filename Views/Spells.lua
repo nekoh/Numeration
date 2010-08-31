@@ -8,13 +8,13 @@ local spellIcon = addon.spellIcon
 
 local backAction = function(f)
 	view.first = 1
-	addon.nav.view = 'Type'
+	addon.nav.view = "Type"
 	addon.nav.type = nil
 	addon:RefreshDisplay()
 end
 
 local detailAction = function(f)
-	addon.nav.view = 'SpellUnits'
+	addon.nav.view = "SpellUnits"
 	addon.nav.spell = f.spell
 	addon:RefreshDisplay()
 end
@@ -70,7 +70,12 @@ function view:Update(merged)
 		local value = spellToValue[id]
 		local name, icon = spellName[id], spellIcon[id]
 		
-		if id == 0 or id == 75 then icon = "" end
+		if name == nil then
+			name = id
+			icon = ""
+		elseif id == 0 or id == 75 then
+			icon = ""
+		end
 		
 		local line = addon.window:GetLine(i-self.first)
 		line:SetValues(value, maxvalue)
@@ -104,7 +109,7 @@ function view:Report(merged, num_lines)
 	addon:PrintHeaderLine(set)
 	for i = 1, num_lines do
 		local value = spellToValue[sorttbl[i]]
-		local name = spellName[sorttbl[i]]
+		local name = spellName[sorttbl[i]] or sorttbl[i]
 
 		addon:PrintLine("%i. %s %i (%02.1f%%)", i, name, value, value/total*100)
 	end

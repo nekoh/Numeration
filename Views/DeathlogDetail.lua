@@ -9,7 +9,7 @@ local colorhex = addon.colorhex
 
 local backAction = function(f)
 	view.first = 999
-	addon.nav.view = 'Deathlog'
+	addon.nav.view = "Deathlog"
 	addon.nav.id = nil
 	addon:RefreshDisplay()
 end
@@ -64,18 +64,18 @@ eventText.DT = function(event, spellId, srcName, spellSchool, amount, overkill, 
 	absorbed = (absorbed~="") and string.format("|cffFFFF00-%s|r", absorbed) or "" -- 1,1,0
 	blocked = (blocked~="") and string.format("|cffAAAAAA-%s|r", blocked) or "" -- .66,.66,.66 // 0.5,0,1
 	resisted = (resisted~="") and string.format("|cff800080-%s|r", resisted) or "" -- 0.5,0,0.5
-	return string.format("|cffFF0000%+7d%s|r%s%s%s%s [%s - |cff%s%s|r]", -tonumber(amount), modifier, overkill, absorbed, blocked, resisted, srcName, schoolColor[spellSchool] or "FFFF00", spellName[spellId])
+	return string.format("|cffFF0000%+7d%s|r%s%s%s%s [%s - |cff%s%s|r]", -tonumber(amount), modifier, overkill, absorbed, blocked, resisted, srcName, schoolColor[spellSchool] or "FFFF00", spellName[spellId] or spellId)
 end
 eventText.DM = function(event, spellId, srcName, spellSchool, missType, amountMissed)
-	return string.format("  |cffAAAAAA%s|r [%s - |cff%s%s|r]", missType, srcName, schoolColor[spellSchool] or "FFFF00", spellName[spellId])
+	return string.format("  |cffAAAAAA%s|r [%s - |cff%s%s|r]", missType, srcName, schoolColor[spellSchool] or "FFFF00", spellName[spellId] or spellId)
 end
 eventText.HT = function(event, spellId, srcName, amount, overhealing, modifier)
 	overhealing = (overhealing~="") and string.format("|cff00B480>%i|r", overhealing) or "" -- 0,0.705,0.5 = 00B480 // 4080D9
-	return string.format("|cff00FF00%+7d%s|r%s [%s - %s]", amount, modifier, overhealing, srcName, spellName[spellId])
+	return string.format("|cff00FF00%+7d%s|r%s [%s - %s]", amount, modifier, overhealing, srcName, spellName[spellId] or spellId)
 end
 eventText.AB = function(event, spellId, modifier, stacks)
 	stacks = (stacks~="") and string.format(" (%s)", stacks) or ""
-	return string.format("     %s|cff%s[%s]|r%s", modifier, (event == "AB") and "B2B200" or "008080", spellName[spellId], stacks)
+	return string.format("     %s|cff%s[%s]|r%s", modifier, (event == "AB") and "B2B200" or "008080", spellName[spellId] or spellId, stacks)
 end
 eventText.AD = eventText.AB
 eventText.X = function(event, spellId)
@@ -98,11 +98,11 @@ function view:Update()
 		local line = addon.window:GetLine(i-self.first)
 		
 		local rtime, healthpct, spellId, event, info = strsplit("#", entry)
-		spellId = tonumber(spellId) or 0
+		spellId = tonumber(spellId) or spellId
 		healthpct = tonumber(healthpct)
 		local text = eventText[event](event, spellId, strsplit(":", info))
 		local c = eventColors[event]
-		local icon = spellIcon[spellId]
+		local icon = spellIcon[spellId] or ""
 		
 		if c == nil then
 			line:SetValues(100, 100)

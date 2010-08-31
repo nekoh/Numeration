@@ -101,9 +101,9 @@ local fmtDamage = function(entry)
 	local amount, overkill = entry[4], entry[5]
 	local resisted, blocked, absorbed = entry[6], entry[7], entry[8]
 	local critical, glancing, crushing = entry[9], entry[10], entry[11]
-	local text = string.format("%i#DT#%s:%i:%i:%s:%s:%s:%s:%s", spellId, srcName or 'Unknown', spellSchool, amount, overkill > 0 and overkill or "", resisted or "", blocked or "", absorbed or "", critical and "!" or glancing and "v" or crushing and "^" or "")
+	local text = string.format("%s#DT#%s:%i:%i:%s:%s:%s:%s:%s", spellId, srcName or "Unknown", spellSchool, amount, overkill > 0 and overkill or "", resisted or "", blocked or "", absorbed or "", critical and "!" or glancing and "v" or crushing and "^" or "")
 	if overkill > 0 then
-		return text, spellId, srcName or 'Unknown', spellSchool, amount
+		return text, spellId, srcName or "Unknown", spellSchool, amount
 	end
 	return text
 end
@@ -111,7 +111,7 @@ local fmtMiss = function(entry)
 	local srcName = entry[1]
 	local spellId, spellSchool = entry[2], entry[3]
 	local missType, amountMissed = entry[4], entry[5]
-	return string.format("%i#DM#%s:%i:%s:%s", spellId, srcName or 'Unknown', spellSchool, missType, amountMissed or '')
+	return string.format("%i#DM#%s:%i:%s:%s", spellId, srcName or "Unknown", spellSchool, missType, amountMissed or "")
 end
 local fmtHealing = function(entry)
 	local srcName = entry[1]
@@ -156,7 +156,7 @@ local function unitDied(timestamp, playerID, playerName)
 		deathData[playerID] = nil
 		tinsert(deathlog, "-0.0#0##X#")
 	end
-	deathlog[0] = string.format("%s#%s#DEATH#%s:%s:%s:%s", playerName, class, _spellId or '', _srcName or '', _spellSchool or '', _amount or '')
+	deathlog[0] = string.format("%s#%s#DEATH#%s:%s:%s:%s", playerName, class, _spellId or "", _srcName or "", _spellSchool or "", _amount or "")
 	if set.deathlog then
 		tinsert(set.deathlog, deathlog)
 		set.deathlog.total = set.deathlog.total + 1
@@ -184,7 +184,7 @@ local function unitRezzed(timestamp, playerID, playerName, spellId, rezzerName)
 	clearEvts(playerID)
 end
 
-local addEvt = function(playerID, playerName, fmtFunc, timestamp, ...)
+local addDeathlogEvent = function(playerID, playerName, fmtFunc, timestamp, ...)
 	local class = addon:GetUnitClass(playerID)
 	if not class or class == "PET" then return end
 	local entry = tremove(tblCache) or {}
@@ -388,7 +388,7 @@ local function addSpellDetails(u, etype, spellID, amount)
 	event.spell[spellID] = (event.spell[spellID] or 0) + amount
 end
 local function addTargetDetails(u, etype, targetName, amount)
-	if not targetName then targetName = 'Unknown' end
+	if not targetName then targetName = "Unknown" end
 	local t = u[etype].target
 	if not t then
 		t = {}
@@ -396,22 +396,6 @@ local function addTargetDetails(u, etype, targetName, amount)
 	end
 	
 	t[targetName] = (t[targetName] or 0) + amount
-end
-
-local function EVENT(etype, playerID, playerName, targetName, spellID, amount)
-	local all, atm = addon:GetSets()
-
-	-- Total Set
-	all.changed = true
-	local u = addon:GetUnit(all, playerID, playerName)
-	addSpellDetails(u, etype, spellID, amount)
-
-	-- Current Set
-	if not atm then return end
-	atm.changed = true
-	local u = addon:GetUnit(atm, playerID, playerName)
-	addSpellDetails(u, etype, spellID, amount)
-	addTargetDetails(u, etype, targetName, amount)
 end
 
 local function updateTime(u, etype, timestamp)
@@ -428,23 +412,32 @@ local function updateTime(u, etype, timestamp)
 	end
 	u[etype].time = t
 end
-local function TIMEEVENT(etype, timestamp, playerID, playerName)
+
+local function EVENT(etype, playerID, playerName, targetName, spellID, amount, timestamp)
+	if not addon.ids[etype] then return end
 	local all, atm = addon:GetSets()
 
 	-- Total Set
-	updateTime(addon:GetUnit(all, playerID, playerName), etype, timestamp)
+	all.changed = true
+	local u = addon:GetUnit(all, playerID, playerName)
+	addSpellDetails(u, etype, spellID, amount)
+	if timestamp then updateTime(u, etype, timestamp) end
 
 	-- Current Set
 	if not atm then return end
-	updateTime(addon:GetUnit(atm, playerID, playerName), etype, timestamp)
+	atm.changed = true
+	local u = addon:GetUnit(atm, playerID, playerName)
+	addSpellDetails(u, etype, spellID, amount)
+	addTargetDetails(u, etype, targetName, amount)
+	if timestamp then updateTime(u, etype, timestamp) end
 end
 
 local shields = {}
-local function findAbsorber(timestamp, dstName, amount)
-	if not shields[dstName] then return end
+local function findAbsorber(timestamp, dstGUID, dstName, amount)
+	if not shields[dstGUID] then return end
 	local mintime = 999
 	local shielderId, shieldSpellId
-	for shield_id, spells in pairs(shields[dstName]) do
+	for shield_id, spells in pairs(shields[dstGUID]) do
 		for shield_src, ts in pairs(spells) do
 			local time_diff = ts - timestamp
 			if time_diff < -0.1 then
@@ -458,7 +451,7 @@ local function findAbsorber(timestamp, dstName, amount)
 	end
 	
 	if shielderId and addon.guidToClass[shielderId] then
-		EVENT('ga', shielderId, nil, dstName, shieldSpellId, amount)
+		EVENT("ga", shielderId, nil, dstName, shieldSpellId, amount)
 	end
 end
 
@@ -468,43 +461,46 @@ function collect.SPELL_DAMAGE(timestamp, srcGUID, srcName, srcFlags, dstGUID, ds
 	local dstFriend = addon.guidToClass[dstGUID]
 	if dstFriend then
 		if srcFriend then
-			EVENT('ff', srcGUID, srcName, dstName, spellId, amount)
-		else
+			EVENT("ff", srcGUID, srcName, dstName, spellId, amount)
+		elseif srcGUID ~= "Environment" then
 			addon:EnterCombatEvent(timestamp, srcGUID, srcName)
 		end
-		EVENT('dt', dstGUID, dstName, srcName, spellId, amount)
-		if absorbed then
-			findAbsorber(timestamp, dstName, absorbed)
+		EVENT("dt", dstGUID, dstName, srcName, spellId, amount)
+		if addon.ids["ga"] and absorbed then
+			findAbsorber(timestamp, dstGUID, dstName, absorbed)
 		end
-		if addon:GetOption("deathlog") then
-			addEvt(dstGUID, dstName, fmtDamage, timestamp, srcName, spellId, spellSchool, amount, overkill, resisted, blocked, absorbed, critical, glancing, crushing)
+		if addon.ids["deathlog"] then
+			addDeathlogEvent(dstGUID, dstName, fmtDamage, timestamp, srcName, spellId, spellSchool, amount, overkill, resisted, blocked, absorbed, critical, glancing, crushing)
 		end
 	elseif srcFriend then
 		addon:EnterCombatEvent(timestamp, dstGUID, dstName)
-		EVENT('dd', srcGUID, srcName, dstName, spellId, amount)
-		TIMEEVENT('dd', timestamp, srcGUID, srcName)
+		EVENT("dd", srcGUID, srcName, dstName, spellId, amount, timestamp)
 	end
 end
 collect.SPELL_PERIODIC_DAMAGE = collect.SPELL_DAMAGE
+collect.SPELL_BUILDING_DAMAGE = collect.SPELL_DAMAGE
 collect.RANGE_DAMAGE = collect.SPELL_DAMAGE
+collect.DAMAGE_SPLIT = collect.SPELL_DAMAGE
 collect.DAMAGE_SHIELD = collect.SPELL_DAMAGE
 function collect.SWING_DAMAGE(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, amount, overkill, school, resisted, blocked, absorbed, critical, glancing, crushing)
 	collect.SPELL_DAMAGE(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, 0, "Melee", 0x01, amount, overkill, school, resisted, blocked, absorbed, critical, glancing, crushing)
-	-- Texture: Interface\Icons\INV_Sword_04
+end
+function collect.ENVIRONMENTAL_DAMAGE(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, environmentalType, amount, overkill, school, resisted, blocked, absorbed, critical, glancing, crushing)
+	collect.SPELL_DAMAGE(timestamp, "Environment", "Environment", srcFlags, dstGUID, dstName, dstFlags, environmentalType, environmentalType, 0x01, amount, overkill, school, resisted, blocked, absorbed, critical, glancing, crushing)
 end
 
--- TODO: later when misses tracked, add here
 function collect.SPELL_MISSED(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool, missType, amountMissed)
 	if addon.guidToClass[dstGUID] then
-		if addon:GetOption("deathlog") then
-			addEvt(dstGUID, dstName, fmtMiss, timestamp, srcName, spellId, spellSchool, missType, amountMissed)
+		if addon.ids["deathlog"] then
+			addDeathlogEvent(dstGUID, dstName, fmtMiss, timestamp, srcName, spellId, spellSchool, missType, amountMissed)
 		end
-		if amountMissed and missType == "ABSORB" then
-			findAbsorber(timestamp, dstName, amountMissed)
+		if addon.ids["ga"] and amountMissed and missType == "ABSORB" then
+			findAbsorber(timestamp, dstGUID, dstName, amountMissed)
 		end
 	end
 end
 collect.SPELL_PERIODIC_MISSED = collect.SPELL_MISSED
+collect.SPELL_BUILDING_MISSED = collect.SPELL_MISSED
 collect.RANGE_MISSED = collect.SPELL_MISSED
 collect.DAMAGE_SHIELD_MISSED = collect.SPELL_MISSED
 function collect.SWING_MISSED(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, missType, amountMissed)
@@ -514,73 +510,110 @@ end
 function collect.SPELL_HEAL(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool, amount, overhealing, absorbed, critical)
 	if addon.guidToClass[srcGUID] then
 		if overhealing > 0 then
-			EVENT('oh', srcGUID, srcName, dstName, spellId, overhealing)
+			EVENT("oh", srcGUID, srcName, dstName, spellId, overhealing)
 		end
-		EVENT('hd', srcGUID, srcName, dstName, spellId, amount - overhealing)
-		TIMEEVENT('hd', timestamp, srcGUID, srcName)
+		EVENT("hd", srcGUID, srcName, dstName, spellId, amount - overhealing, timestamp)
 	end
-	if addon:GetOption("deathlog") and addon.guidToClass[dstGUID] and not deathlogHealFilter[spellName] then
-		addEvt(dstGUID, dstName, fmtHealing, timestamp, srcName, spellId, amount, overhealing, critical)
+	if addon.ids["deathlog"] and addon.guidToClass[dstGUID] and not deathlogHealFilter[spellName] then
+		addDeathlogEvent(dstGUID, dstName, fmtHealing, timestamp, srcName, spellId, amount, overhealing, critical)
 	end
 end
 collect.SPELL_PERIODIC_HEAL = collect.SPELL_HEAL
 
 function collect.SPELL_DISPEL(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool, extraSpellID, extraSpellName, extraSchool, auraType)
 	if addon.guidToClass[srcGUID] then
-		EVENT('dp', srcGUID, srcName, dstName, extraSpellID, 1)
+		EVENT("dp", srcGUID, srcName, dstName, extraSpellID, 1)
 	end
 end
 collect.SPELL_PERIODIC_DISPEL = collect.SPELL_DISPEL
--- SPELL_DISPEL_FAILED TODO: later when misses tracked
 
 function collect.SPELL_INTERRUPT(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool, extraSpellID, extraSpellName, extraSchool)
 	if addon.guidToClass[srcGUID] then
-		EVENT('ir', srcGUID, srcName, dstName, extraSpellID, 1)
+		EVENT("ir", srcGUID, srcName, dstName, extraSpellID, 1)
 	end
 end
 
-
 function collect.SPELL_ENERGIZE(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool, amount, powerType)
 	if addon.guidToClass[dstGUID] then
-		EVENT('mg', dstGUID, dstName, srcName, spellId, amount)
+		EVENT("pg", dstGUID, dstName, srcName, spellId, amount)
 	end
 end
 collect.SPELL_PERIODIC_ENERGIZE = SPELL_ENERGIZE
 
 function collect.SPELL_AURA_APPLIED_DOSE(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool, auraType, amount)
-	if addon:GetOption("deathlog") and addon.guidToClass[dstGUID] and (auraType == "DEBUFF" or deathlogTrackBuffs[spellName]) then
-		addEvt(dstGUID, dstName, fmtDeBuff, timestamp, spellId, auraType, amount or 1, "+")
+	if addon.ids["deathlog"] and addon.guidToClass[dstGUID] and (auraType == "DEBUFF" or deathlogTrackBuffs[spellName]) then
+		addDeathlogEvent(dstGUID, dstName, fmtDeBuff, timestamp, spellId, auraType, amount or 1, "+")
 	end
 	local duration = AbsorbSpellDuration[spellId]
-	if duration and addon.guidToClass[srcGUID] and addon.guidToClass[dstGUID] then
-		shields[dstName] = shields[dstName] or {}
-		shields[dstName][spellId] = shields[dstName][spellId] or {}
-		shields[dstName][spellId][srcGUID] = timestamp + duration
+	if addon.ids["ga"] and duration and addon.guidToClass[srcGUID] then
+		shields[dstGUID] = shields[dstGUID] or {}
+		shields[dstGUID][spellId] = shields[dstGUID][spellId] or {}
+		shields[dstGUID][spellId][srcGUID] = timestamp + duration
 	end
 end
 collect.SPELL_AURA_APPLIED = collect.SPELL_AURA_APPLIED_DOSE
 collect.SPELL_AURA_REFRESH = collect.SPELL_AURA_APPLIED_DOSE
 collect.SPELL_AURA_REMOVED_DOSE = collect.SPELL_AURA_APPLIED_DOSE
 function collect.SPELL_AURA_REMOVED(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool, auraType)
-	if addon:GetOption("deathlog") and addon.guidToClass[dstGUID] and (auraType == "DEBUFF" or deathlogTrackBuffs[spellName]) then
-		addEvt(dstGUID, dstName, fmtDeBuff, timestamp, spellId, auraType, 1, "-")
+	if addon.ids["deathlog"] and addon.guidToClass[dstGUID] and (auraType == "DEBUFF" or deathlogTrackBuffs[spellName]) then
+		addDeathlogEvent(dstGUID, dstName, fmtDeBuff, timestamp, spellId, auraType, 1, "-")
 	end
-	if AbsorbSpellDuration[spellId] and addon.guidToClass[srcGUID] and addon.guidToClass[dstGUID] then
-		if shields[dstName] and shields[dstName][spellId] and shields[dstName][spellId][srcName] then
-			-- As advised in RecountGuessedAbsorbs, do not remove shields straight away as an absorb can come after the aura removed event.
-			shields[dstName][spellId][srcName] = timestamp + 0.1
+	if addon.ids["ga"] and AbsorbSpellDuration[spellId] and addon.guidToClass[srcGUID] then
+		if shields[dstGUID] and shields[dstGUID][spellId] and shields[dstGUID][spellId][srcGUID] then
+			shields[dstGUID][spellId][srcGUID] = timestamp
 		end
 	end
 end
 
 function collect.UNIT_DIED(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags)
-	if addon:GetOption("deathlog") and addon.guidToClass[dstGUID] then
+	if addon.ids["deathlog"] and addon.guidToClass[dstGUID] then
 		unitDied(timestamp, dstGUID, dstName)
 	end
 end
 
 function collect.SPELL_RESURRECT(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool)
-	if addon:GetOption("deathlog") and addon.guidToClass[dstGUID] then
+	if addon.ids["deathlog"] and addon.guidToClass[dstGUID] then
 		unitRezzed(timestamp, dstGUID, dstName, spellId, srcName)
+	end
+end
+
+function collect:RemoveUnneededEvents()
+	if not addon.ids["deathlog"] and not addon.ids["ga"] then
+		collect.SPELL_MISSED = nil
+		collect.SPELL_PERIODIC_MISSED = nil
+		collect.SPELL_BUILDING_MISSED = nil
+		collect.RANGE_MISSED = nil
+		collect.DAMAGE_SHIELD_MISSED = nil
+		collect.SWING_MISSED = nil
+
+		collect.SPELL_AURA_APPLIED_DOSE = nil
+		collect.SPELL_AURA_APPLIED = nil
+		collect.SPELL_AURA_REFRESH = nil
+		collect.SPELL_AURA_REMOVED_DOSE = nil
+		collect.SPELL_AURA_REMOVED = nil
+	end
+
+	if not addon.ids["hd"] and not addon.ids["oh"] and not addon.ids["deathlog"] then
+		collect.SPELL_HEAL = nil
+		collect.SPELL_PERIODIC_HEAL = nil
+	end
+
+	if not addon.ids["dp"] then
+		collect.SPELL_DISPEL = nil
+		collect.SPELL_PERIODIC_DISPEL = nil
+	end
+	
+	if not addon.ids["ir"] then
+		collect.SPELL_INTERRUPT = nil
+	end
+	
+	if not addon.ids["pg"] then
+		collect.SPELL_ENERGIZE = nil
+		collect.SPELL_PERIODIC_ENERGIZE = nil
+	end
+
+	if not addon.ids["deathlog"] then
+		collect.UNIT_DIED = nil
+		collect.SPELL_RESURRECT = nil
 	end
 end

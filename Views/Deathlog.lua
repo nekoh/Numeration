@@ -9,13 +9,13 @@ local colorhex = addon.colorhex
 
 local backAction = function(f)
 	view.first = 1
-	addon.nav.view = 'Type'
+	addon.nav.view = "Type"
 	addon.nav.type = nil
 	addon:RefreshDisplay()
 end
 
 local detailAction = function(f)
-	addon.nav.view = 'Deathlog-Detail'
+	addon.nav.view = "Deathlog-Detail"
 	addon.nav.id = f.id
 	addon:RefreshDisplay()
 end
@@ -53,8 +53,8 @@ eventInfo.DEATH = function(event, playerName, class, spellId, srcName, spellScho
 		icon = [[Interface\TargetingFrame\UI-TargetingFrame-Skull]]
 		text = string.format("|cff%s%s|r", colorhex[class], playerName)
 	else
-		spellId = tonumber(spellId)
-		icon = spellIcon[spellId]
+		spellId = tonumber(spellId) or spellId
+		icon = spellIcon[spellId] or ""
 		text = string.format("|cff%s%s|r < |cffFF0000%+d|r [%s - |cff%s%s|r]", colorhex[class], playerName, -tonumber(amount), srcName, schoolColor[spellSchool] or "FFFF00", spellName[spellId])
 	end
 	return icon, text, spellId

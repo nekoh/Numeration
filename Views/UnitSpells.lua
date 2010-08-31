@@ -8,13 +8,13 @@ local spellIcon = addon.spellIcon
 
 local backAction = function(f)
 	view.first = 1
-	addon.nav.view = 'Units'
+	addon.nav.view = "Units"
 	addon.nav.unit = nil
 	addon:RefreshDisplay()
 end
 
 local detailAction = function(f)
-	addon.nav.view = 'UnitTargets'
+	addon.nav.view = "UnitTargets"
 	addon:RefreshDisplay()
 end
 
@@ -49,7 +49,7 @@ local updateTables = function(set, u, etype, merged)
 	if u[etype] then
 		total = u[etype].total
 		for id, amount in pairs(u[etype].spell) do
-			local name = format("%s%i", u.name, id)
+			local name = format("%s%s", u.name, id)
 			nameToValue[name] = amount
 			nameToId[name] = id
 			tinsert(sorttbl, name)
@@ -61,7 +61,7 @@ local updateTables = function(set, u, etype, merged)
 			if pu[etype] then
 				total = total + pu[etype].total
 				for id, amount in pairs(pu[etype].spell) do
-					local name = format("%s%i", pu.name, id)
+					local name = format("%s%s", pu.name, id)
 					nameToValue[name] = amount
 					nameToPetName[name] = pu.name
 					nameToId[name] = id
@@ -103,7 +103,12 @@ function view:Update(merged)
 		local id = nameToId[sorttbl[i]]
 		local name, icon = spellName[id], spellIcon[id]
 		
-		if id == 0 or id == 75 then icon = "" end
+		if name == nil then
+			name = id
+			icon = ""
+		elseif id == 0 or id == 75 then
+			icon = ""
+		end
 		
 		local line = addon.window:GetLine(i-self.first)
 		line:SetValues(value, maxvalue)
@@ -146,7 +151,7 @@ function view:Report(merged, num_lines)
 		local petName = nameToPetName[sorttbl[i]]
 		local value = nameToValue[sorttbl[i]]
 		local id = nameToId[sorttbl[i]]
-		local name = spellName[id]
+		local name = spellName[id] or id
 		
 		if petName then
 			name = format("%s <%s>", name, petName)

@@ -4,25 +4,6 @@ addon.window = window
 
 local lines = {}
 
--- SETTINGS
-local s = {
-	pos = { "TOPLEFT", 4, -4 },
-	width = 280,
-	maxlines = 9,
-
-	titleheight = 16,
-	titlefont = [[Fonts\ARIALN.TTF]],
-	titlefontsize = 13,
-	titlefontcolor = {1, .82, 0},
-
-	lineheight = 14,
-	linegap = 1,
-	linefont = [[Fonts\ARIALN.TTF]],
-	linefontsize = 11,
-	linetexture = [[Interface\Tooltips\UI-Tooltip-Background]],
-	linefontcolor = {1, 1, 1},
-}
-
 local noop = function() end
 local backAction = noop
 local backdrop = {
@@ -38,7 +19,9 @@ local clickFunction = function(self, btn)
 	end
 end
 
+local s
 function window:OnInitialize()
+	s = addon.windowsettings
 	self.maxlines = s.maxlines
 	self:SetWidth(s.width)
 	self:SetHeight(3+s.titleheight+s.maxlines*(s.lineheight+s.linegap))
@@ -64,7 +47,7 @@ function window:OnInitialize()
 	end)
 
 	self:SetBackdrop(backdrop)
-	self:SetBackdropColor(0, 0, 0, 1)
+	self:SetBackdropColor(0, 0, 0, s.backgroundalpha)
 	
 	local x, y = addon:GetOption("x"), addon:GetOption("y")
 	if not x or not y then
@@ -88,19 +71,18 @@ function window:OnInitialize()
 		{ text = "Numeration", isTitle = true, notCheckable = true, notClickable = true },
 		{ text = "Report", notCheckable = true, hasArrow = true,
 			menuList = {
-				{ text = 'Say', arg1 = "SAY", func = reportFunction, notCheckable = 1 },
-				{ text = 'Raid', arg1 = "RAID", func = reportFunction, notCheckable = 1 },
-				{ text = 'Party', arg1 = "PARTY", func = reportFunction, notCheckable = 1 },
-				{ text = 'Guild', arg1 = "GUILD", func = reportFunction, notCheckable = 1 },
-				{ text = 'Whisper', arg1 = "WHISPER", arg2 = "target", func = reportFunction, notCheckable = 1 },
-				{ text = 'Channel  ', notCheckable = 1, keepShownOnClick = true, hasArrow = true, menuList = {} }
+				{ text = "Say", arg1 = "SAY", func = reportFunction, notCheckable = 1 },
+				{ text = "Raid", arg1 = "RAID", func = reportFunction, notCheckable = 1 },
+				{ text = "Party", arg1 = "PARTY", func = reportFunction, notCheckable = 1 },
+				{ text = "Guild", arg1 = "GUILD", func = reportFunction, notCheckable = 1 },
+				{ text = "Whisper", arg1 = "WHISPER", arg2 = "target", func = reportFunction, notCheckable = 1 },
+				{ text = "Channel  ", notCheckable = 1, keepShownOnClick = true, hasArrow = true, menuList = {} }
 			},
 		},
 		{ text = "Options", notCheckable = true, hasArrow = true,
 			menuList = {
 				{ text = "Merge Pets w/ Owners", arg1 = "petsmerged", func = optionFunction, checked = function() return addon:GetOption("petsmerged") end, keepShownOnClick = true },
 				{ text = "Keep Only Boss Segments", arg1 = "keeponlybosses", func = optionFunction, checked = function() return addon:GetOption("keeponlybosses") end, keepShownOnClick = true },
-				{ text = "Record Deathlog", arg1 = "deathlog", func = optionFunction, checked = function() return addon:GetOption("deathlog") end, keepShownOnClick = true },
 				{ text = "Record Only In Instances", arg1 = "onlyinstance", func = optionFunction, checked = function() return addon:GetOption("onlyinstance") end, keepShownOnClick = true },
 				{ text = "Show Minimap Icon", func = function(f, a1, a2, checked) addon:MinimapIconShow(checked) end, checked = function() return not NumerationCharOptions.minimap.hide end, keepShownOnClick = true },
 			},
@@ -121,7 +103,7 @@ function window:OnInitialize()
 	local reset = CreateFrame("Button", nil, self)
 	self.reset = reset
 		reset:SetBackdrop(backdrop)
-		reset:SetBackdropColor(0, 0, 0, .8)
+		reset:SetBackdropColor(0, 0, 0, s.titlealpha)
 		reset:SetNormalFontObject(ChatFontSmall)
 		reset:SetText(">")
 		reset:SetWidth(s.titleheight)
@@ -138,23 +120,23 @@ function window:OnInitialize()
 			EasyMenu(menuTable, dropdown, "cursor", 0 , 0, "MENU")
 		end)
 		reset:SetScript("OnEnter", function() reset:SetBackdropColor(1, .82, 0, .8) end)
-		reset:SetScript("OnLeave", function() reset:SetBackdropColor(0, 0, 0, .8) end)
+		reset:SetScript("OnLeave", function() reset:SetBackdropColor(0, 0, 0, s.titlealpha) end)
 	
 	local segment = CreateFrame("Button", nil, self)
 	self.segment = segment
 		segment:SetBackdrop(backdrop)
-		segment:SetBackdropColor(0, 0, 0, .5)
+		segment:SetBackdropColor(0, 0, 0, s.titlealpha/2)
 		segment:SetNormalFontObject(ChatFontSmall)
 		segment:SetText(" ")
 		segment:SetWidth(s.titleheight-2)
 		segment:SetHeight(s.titleheight-2)
 		segment:SetPoint("RIGHT", reset, "LEFT", -2, 0)
-		segment:SetScript("OnMouseUp", function() addon.nav.view = 'Sets' addon.nav.set = nil addon:RefreshDisplay() dropdown:Show() end)
+		segment:SetScript("OnMouseUp", function() addon.nav.view = "Sets" addon.nav.set = nil addon:RefreshDisplay() dropdown:Show() end)
 		segment:SetScript("OnEnter", function()
 			segment:SetBackdropColor(1, .82, 0, .8)
 			GameTooltip:SetOwner(segment, "ANCHOR_BOTTOMRIGHT")
 			local name = ""
-			if addon.nav.set == 'current' then
+			if addon.nav.set == "current" then
 				name = "Current Fight"
 			else
 				local set = addon:GetSet(addon.nav.set)
@@ -165,13 +147,13 @@ function window:OnInitialize()
 			GameTooltip:AddLine(name)
 			GameTooltip:Show()
 		end)
-		segment:SetScript("OnLeave", function() segment:SetBackdropColor(0, 0, 0, .8) GameTooltip:Hide() end)
+		segment:SetScript("OnLeave", function() segment:SetBackdropColor(0, 0, 0, s.titlealpha/2) GameTooltip:Hide() end)
 
 	local title = self:CreateTexture(nil, "ARTWORK")
 	self.title = title
 		title:SetTexture([[Interface\TargetingFrame\UI-StatusBar]])
 		title:SetTexCoord(.8, 1, .8, 1)
-		title:SetVertexColor(.25, .66, .35, .9)
+		title:SetVertexColor(.25, .66, .35, s.titlealpha)
 		title:SetPoint("TOPLEFT", 1, -1)
 		title:SetPoint("BOTTOMRIGHT", reset, "BOTTOMLEFT", -1, 0)
 	local font = self:CreateFontString(nil, "ARTWORK")
@@ -211,7 +193,7 @@ function window:UpdateSegment(segment)
 end
 
 function window:SetTitle(name, r, g, b)
-	self.title:SetVertexColor(r, g, b, .9)
+	self.title:SetVertexColor(r, g, b, s.titlealpha)
 	self.titletext:SetText(name)
 end
 
@@ -220,6 +202,7 @@ function window:GetTitle()
 end
 
 function window:SetScrollPosition(curPos, maxPos)
+	if not s.scrollbar then return end
 	if maxPos <= s.maxlines then return end
 	local total = s.maxlines*(s.lineheight+s.linegap)
 	self.scroll:SetHeight(s.maxlines/maxPos*total)
@@ -252,7 +235,7 @@ local SetRightText = function(f, ...)
 	f.value:SetFormattedText(...)
 end
 local SetColor = function(f, r, g, b, a)
-	f:SetStatusBarColor(r, g, b, a or 1)
+	f:SetStatusBarColor(r, g, b, a or s.linealpha)
 end
 local SetDetailAction = function(f, func)
 	f.detailAction = func or noop

@@ -5,7 +5,7 @@ view.first = 1
 
 local backAction = function(f)
 	view.first = 1
-	addon.nav.view = 'Spells'
+	addon.nav.view = "Spells"
 	addon.nav.spell = nil
 	addon:RefreshDisplay()
 end
@@ -17,7 +17,7 @@ function view:Init()
 	local id = addon.nav.spell
 	
 	local t = addon.types[addon.nav.type]
-	local text = format("%s: %s", t.name, spellName[id])
+	local text = format("%s: %s", t.name, spellName[id] or id)
 	addon.window:SetTitle(text, t.c[1], t.c[2], t.c[3])
 	addon.window:SetBackAction(backAction)
 end

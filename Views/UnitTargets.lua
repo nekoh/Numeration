@@ -5,7 +5,7 @@ view.first = 1
 
 local backAction = function(f)
 	view.first = 1
-	addon.nav.view = 'UnitSpells'
+	addon.nav.view = "UnitSpells"
 	addon:RefreshDisplay()
 end
 

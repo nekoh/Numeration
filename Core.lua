@@ -1,4 +1,5 @@
 local addonname, addon = ...
+Numeration = addon
 addon.events = CreateFrame("Frame")
 addon.events:SetScript("OnEvent", function(self, event, ...)
 	addon[event](addon, event, ...)
@@ -8,88 +9,10 @@ addon.views = {}
 addon.guidToClass = {}
 addon.guidToName = {}
 
--- SETTINGS
-local s = {
-	refreshinterval = 1,
-	mincombatlength = 15,
-	combatseconds = 3,
-}
--- available types and their order
-addon.types = {
-	{
-		name = "Damage",
-		id = "dd",
-		c = {.25, .66, .35},
-	},
-	{
-		name = "Damage Targets",
-		id = "dd",
-		view = "Targets",
-		onlyfights = true,
-		c = {.25, .66, .35},
-	},
-	{
-		name = "Damage Taken: Targets",
-		id = "dt",
-		view = "Targets",
-		onlyfights = true,
-		c = {.66, .25, .25},
-	},
-	{
-		name = "Damage Taken: Abilities",
-		id = "dt",
-		view = "Spells",
-		c = {.66, .25, .25},
-	},
-	{
-		name = "Friendly Fire",
-		id = "ff",
-		c = {.63, .58, .24},
-	},
-	{
-		name = "Healing + Absorbs",
-		id = "hd",
-		id2 = "ga",
-		c = {.25, .5, .85},
-	},
---	{
---		name = "Healing",
---		id = "hd",
---		c = {.25, .5, .85},
---	},
---	{
---		name = "Guessed Absorbs",
---		id = "ga",
---		c = {.25, .5, .85},
---	},
-	{
-		name = "Overhealing",
-		id = "oh",
-		c = {.25, .5, .85},
-	},
-	{
-		name = "Dispels",
-		id = "dp",
-		c = {.58, .24, .63},
-	},
-	{
-		name = "Interrupts",
-		id = "ir",
-		c = {.09, .61, .55},
-	},
-	{
-		name = "Power Gains",
-		id = "mg",
-		c = {48/255, 113/255, 191/255},
-	},
-	{
-		name = "Death Log",
-		id = "deathlog",
-		view = "Deathlog",
-		onlyfights = true,
-		c = {.66, .25, .25},
-	},
-}
+-- Keybindings
+BINDING_HEADER_NUMERATION = "Numeration"
+BINDING_NAME_NUMERATION_VISIBILITY = "Toggle Visibility"
+BINDING_NAME_NUMERATION_RESET = "Reset Data"
 
 local bossIds = {
 	-- Naxxramas
@@ -179,23 +102,16 @@ local bossIds = {
 
 -- used colors
 addon.color = {
-	HUNTER = { 0.67, 0.83, 0.45 },
-	WARLOCK = { 0.58, 0.51, 0.79 },
-	PRIEST = { 1.0, 1.0, 1.0 },
-	PALADIN = { 0.96, 0.55, 0.73 },
-	MAGE = { 0.41, 0.8, 0.94 },
-	ROGUE = { 1.0, 0.96, 0.41 },
-	DRUID = { 1.0, 0.49, 0.04 },
-	SHAMAN = { 0.14, 0.35, 1.0 },
-	WARRIOR = { 0.78, 0.61, 0.43 },
-	DEATHKNIGHT = { 0.77, 0.12, 0.23 },
 	PET = { 0.09, 0.61, 0.55 },
 }
 addon.colorhex = {}
 do
-	for class, c in pairs(addon.color) do
-		addon.colorhex[class] = string.format("%02X%02X%02X", c[1] * 255, c[2] * 255, c[3] * 255)
+	local colors = CUSTOM_CLASS_COLORS or RAID_CLASS_COLORS
+	for class, c in pairs(colors) do
+		addon.color[class] = { c.r, c.g, c.b }
+		addon.colorhex[class] = string.format("%02X%02X%02X", c.r * 255, c.g * 255, c.b * 255)
 	end
+	addon.colorhex["PET"] = string.format("%02X%02X%02X", addon.color.PET[1] * 255, addon.color.PET[2] * 255, addon.color.PET[3] * 255)
 end
 
 addon.spellIcon = setmetatable({ [0] = "", [75] = "", }, { __index = function(tbl, i)
@@ -241,6 +157,7 @@ function addon:ADDON_LOADED(event, addon)
 	end
 	current = self:GetSet(1) or newSet()
 	
+	self.collect:RemoveUnneededEvents()
 	self.events:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 	
 	if GetRealZoneText() ~= "" then
@@ -248,7 +165,19 @@ function addon:ADDON_LOADED(event, addon)
 	end
 end
 
+local s
 function addon:InitOptions()
+	s = self.coresettings
+	self.ids = {}
+	do
+		for i, tbl in ipairs(self.types) do
+			self.ids[tbl.id] = true
+			if tbl.id2 then
+				self.ids[tbl.id2] = true
+			end
+		end
+	end
+	
 	if not NumerationCharOptions then
 		NumerationCharOptions = {}
 	end
@@ -261,9 +190,6 @@ function addon:InitOptions()
 	if NumerationCharOptions.onlyinstance == nil then
 		NumerationCharOptions.onlyinstance = true
 	end
-	if NumerationCharOptions.deathlog == nil then
-		NumerationCharOptions.deathlog = true
-	end
 	if not NumerationCharOptions.minimap then
 		NumerationCharOptions.minimap = {
 			hide = false,
@@ -271,8 +197,8 @@ function addon:InitOptions()
 	end
 	if not NumerationCharOptions.nav then
 		NumerationCharOptions.nav = {
-			view = 'Units',
-			set = 'current',
+			view = "Units",
+			set = "current",
 			type = 1,
 		}
 	end
@@ -290,14 +216,18 @@ function ldb:OnClick(button)
 		if IsShiftKeyDown() then
 			addon.window:ShowResetWindow()
 		else
-			NumerationCharOptions.forcehide = not NumerationCharOptions.forcehide
-			if NumerationCharOptions.forcehide then
-				addon.window:Hide()
-			else
-				addon.window:Show()
-				addon:RefreshDisplay()
-			end
+			addon:ToggleVisibility()
 		end
+	end
+end
+
+function addon:ToggleVisibility()
+	NumerationCharOptions.forcehide = not NumerationCharOptions.forcehide
+	if NumerationCharOptions.forcehide then
+		self.window:Hide()
+	else
+		self.window:Show()
+		self:RefreshDisplay()
 	end
 end
 
@@ -345,16 +275,12 @@ updateTimer:SetScript("OnUpdate", function(self, elapsed)
 	if self.timer > 0 then return end
 	self.timer = s.refreshinterval
 	
-	if not addon.nav.set then return end
-	
 	if current.changed then
 		ldb.text = addon.views["Units"]:GetXps(current, UnitName("player"), "dd", NumerationCharOptions.petsmerged)
 	end
 	
-	local set = addon:GetSet(addon.nav.set)
-	if not set or not set.changed then
-		return
-	end
+	local set = addon.nav.set and addon:GetSet(addon.nav.set) or current
+	if not set or not set.changed then return end
 	set.changed = nil
 	
 	addon:RefreshDisplay(true)
@@ -373,7 +299,7 @@ function addon:RefreshDisplay(update)
 		
 		if not update then
 			self.views[self.nav.view]:Init()
-			local segment = self.nav.set == 'total' and "O" or self.nav.set == 'current' and "C" or self.nav.set
+			local segment = self.nav.set == "total" and "O" or self.nav.set == "current" and "C" or self.nav.set
 			self.window:UpdateSegment(segment)
 		end
 		self.views[self.nav.view]:Update(NumerationCharOptions.petsmerged)
@@ -449,9 +375,9 @@ end
 function addon:GetSet(id)
 	if not id then return end
 	
-	if id == 'current' then
+	if id == "current" then
 		return current
-	elseif id == 'total' then
+	elseif id == "total" then
 		id = 0
 	end
 	return NumerationCharDB[id]
@@ -671,7 +597,7 @@ end
 function addon:LeaveCombatEvent()
 	if current.active then
 		current.active = nil
-		if ((current.now - current.start) < s.mincombatlength) or (NumerationCharOptions.keeponlybosses and not current.boss) then
+		if ((current.now - current.start) < s.minfightlength) or (NumerationCharOptions.keeponlybosses and not current.boss) then
 			return
 		end
 		tinsert(NumerationCharDB, 1, current)
@@ -690,11 +616,11 @@ function addon:COMBAT_LOG_EVENT_UNFILTERED(e, timestamp, eventtype, srcGUID, src
 	end
 
 	local ownerClassOrGUID = self.guidToClass[srcGUID]
-	if eventtype == 'SPELL_SUMMON' and ownerClassOrGUID then
+	if eventtype == "SPELL_SUMMON" and ownerClassOrGUID then
 		local realSrcGUID = self.guidToClass[ownerClassOrGUID] and ownerClassOrGUID or srcGUID
 		summonguids[dstGUID] = realSrcGUID
 		self.guidToClass[dstGUID] = realSrcGUID
-	elseif eventtype == 'UNIT_DIED' and summonguids[srcGUID] then
+	elseif eventtype == "UNIT_DIED" and summonguids[srcGUID] then
 		summonguids[srcGUID] = nil
 		self.guidToClass[srcGUID] = nil
 	end

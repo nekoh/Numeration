@@ -9,7 +9,7 @@ function view:Init()
 end
 
 local detailAction = function(f)
-	addon.nav.view = 'Type'
+	addon.nav.view = "Type"
 	addon.nav.set = f.id
 	addon:RefreshDisplay()
 end

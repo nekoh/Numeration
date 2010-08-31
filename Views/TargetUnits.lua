@@ -5,7 +5,7 @@ view.first = 1
 
 local backAction = function(f)
 	view.first = 1
-	addon.nav.view = 'Targets'
+	addon.nav.view = "Targets"
 	addon.nav.target = nil
 	addon:RefreshDisplay()
 end

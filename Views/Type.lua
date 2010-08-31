@@ -5,13 +5,13 @@ view.first = 1
 
 local backAction = function(f)
 	view.first = 1
-	addon.nav.view = 'Sets'
+	addon.nav.view = "Sets"
 	addon.nav.set = nil
 	addon:RefreshDisplay()
 end
 
 local detailAction = function(f)
-	addon.nav.view = addon.types[f.typeid].view or 'Units'
+	addon.nav.view = addon.types[f.typeid].view or "Units"
 	addon.nav.type = f.typeid
 	addon:RefreshDisplay()
 end
