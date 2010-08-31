@@ -413,20 +413,20 @@ local function updateTime(u, etype, timestamp)
 	u[etype].time = t
 end
 
-local function EVENT(etype, playerID, playerName, targetName, spellID, amount, timestamp)
+local function EVENT(etype, playerID, targetName, spellID, amount, timestamp)
 	if not addon.ids[etype] then return end
 	local all, atm = addon:GetSets()
 
 	-- Total Set
 	all.changed = true
-	local u = addon:GetUnit(all, playerID, playerName)
+	local u = addon:GetUnit(all, playerID)
 	addSpellDetails(u, etype, spellID, amount)
 	if timestamp then updateTime(u, etype, timestamp) end
 
 	-- Current Set
 	if not atm then return end
 	atm.changed = true
-	local u = addon:GetUnit(atm, playerID, playerName)
+	local u = addon:GetUnit(atm, playerID)
 	addSpellDetails(u, etype, spellID, amount)
 	addTargetDetails(u, etype, targetName, amount)
 	if timestamp then updateTime(u, etype, timestamp) end
@@ -451,7 +451,7 @@ local function findAbsorber(timestamp, dstGUID, dstName, amount)
 	end
 	
 	if shielderId and addon.guidToClass[shielderId] then
-		EVENT("ga", shielderId, nil, dstName, shieldSpellId, amount)
+		EVENT("ga", shielderId, dstName, shieldSpellId, amount)
 	end
 end
 
@@ -461,11 +461,11 @@ function collect.SPELL_DAMAGE(timestamp, srcGUID, srcName, srcFlags, dstGUID, ds
 	local dstFriend = addon.guidToClass[dstGUID]
 	if dstFriend then
 		if srcFriend then
-			EVENT("ff", srcGUID, srcName, dstName, spellId, amount)
+			EVENT("ff", srcGUID, dstName, spellId, amount)
 		elseif srcGUID ~= "Environment" then
 			addon:EnterCombatEvent(timestamp, srcGUID, srcName)
 		end
-		EVENT("dt", dstGUID, dstName, srcName, spellId, amount)
+		EVENT("dt", dstGUID, srcName, spellId, amount)
 		if addon.ids["ga"] and absorbed then
 			findAbsorber(timestamp, dstGUID, dstName, absorbed)
 		end
@@ -474,7 +474,7 @@ function collect.SPELL_DAMAGE(timestamp, srcGUID, srcName, srcFlags, dstGUID, ds
 		end
 	elseif srcFriend then
 		addon:EnterCombatEvent(timestamp, dstGUID, dstName)
-		EVENT("dd", srcGUID, srcName, dstName, spellId, amount, timestamp)
+		EVENT("dd", srcGUID, dstName, spellId, amount, timestamp)
 	end
 end
 collect.SPELL_PERIODIC_DAMAGE = collect.SPELL_DAMAGE
@@ -510,9 +510,9 @@ end
 function collect.SPELL_HEAL(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool, amount, overhealing, absorbed, critical)
 	if addon.guidToClass[srcGUID] then
 		if overhealing > 0 then
-			EVENT("oh", srcGUID, srcName, dstName, spellId, overhealing)
+			EVENT("oh", srcGUID, dstName, spellId, overhealing)
 		end
-		EVENT("hd", srcGUID, srcName, dstName, spellId, amount - overhealing, timestamp)
+		EVENT("hd", srcGUID, dstName, spellId, amount - overhealing, timestamp)
 	end
 	if addon.ids["deathlog"] and addon.guidToClass[dstGUID] and not deathlogHealFilter[spellName] then
 		addDeathlogEvent(dstGUID, dstName, fmtHealing, timestamp, srcName, spellId, amount, overhealing, critical)
@@ -522,20 +522,20 @@ collect.SPELL_PERIODIC_HEAL = collect.SPELL_HEAL
 
 function collect.SPELL_DISPEL(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool, extraSpellID, extraSpellName, extraSchool, auraType)
 	if addon.guidToClass[srcGUID] then
-		EVENT("dp", srcGUID, srcName, dstName, extraSpellID, 1)
+		EVENT("dp", srcGUID, dstName, extraSpellID, 1)
 	end
 end
 collect.SPELL_PERIODIC_DISPEL = collect.SPELL_DISPEL
 
 function collect.SPELL_INTERRUPT(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool, extraSpellID, extraSpellName, extraSchool)
 	if addon.guidToClass[srcGUID] then
-		EVENT("ir", srcGUID, srcName, dstName, extraSpellID, 1)
+		EVENT("ir", srcGUID, dstName, extraSpellID, 1)
 	end
 end
 
 function collect.SPELL_ENERGIZE(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool, amount, powerType)
 	if addon.guidToClass[dstGUID] then
-		EVENT("pg", dstGUID, dstName, srcName, spellId, amount)
+		EVENT("pg", dstGUID, srcName, spellId, amount)
 	end
 end
 collect.SPELL_PERIODIC_ENERGIZE = collect.SPELL_ENERGIZE

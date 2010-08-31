@@ -398,53 +398,47 @@ function addon:GetUnitClass(playerID)
 	if not playerID then return end
 	
 	local class = self.guidToClass[playerID]
-	if self.guidToName[class] then
-		return "PET"
-	end
-	return class
+	return self.guidToName[class] and "PET" or class
 end
 
-function addon:GetUnit(set, playerID, playerName)
-	local class = self.guidToClass[playerID]
-	local ownerName = self.guidToName[class]
-	if not playerName then
-		playerName = self.guidToName[playerID]
-	end
+function addon:GetUnit(set, id)
+	local name, class = self.guidToName[id], self.guidToClass[id]
+	local owner = self.guidToName[class]
 	
-	if not ownerName then
+	if not owner then
 		-- unit
-		local u = set.unit[playerName]
+		local u = set.unit[name]
 		if not u then
 			u = {
-				name = playerName,
+				name = name,
 				class = class,
 			}
-			set.unit[playerName] = u
+			set.unit[name] = u
 		end
 		return u
 	else
 		-- pet
-		local name = format("%s:%s", ownerName, playerName)
-		local p = set.unit[name]
+		local key = format("%s:%s", owner, name)
+		local p = set.unit[key]
 		if not p then
-			local ownertable = self:GetUnit(set, class, ownerName)
+			local ownertable = self:GetUnit(set, class)
 			if not ownertable.pets then
 				ownertable.pets = {}
 			end
-			ownertable.pets[name] = true
+			ownertable.pets[key] = true
 
 			p = {
-				name = playerName,
+				name = name,
 				class = "PET",
-				owner = ownerName,
+				owner = owner,
 			}
-			set.unit[name] = p
+			set.unit[key] = p
 		end
 		return p, true
 	end
 end
 
-local summonguids = {}
+local summonOwner, summonName = {}, {}
 do
 	local UnitGUID, UnitName, UnitClass
 		= UnitGUID, UnitName, UnitClass
@@ -457,18 +451,16 @@ do
 		local petID = UnitGUID(pet)
 		
 		addon.guidToClass[unitID] = unitClass
-		addon.guidToName[unitID] = unitRealm and format("%s-%s", unitName, unitRealm) or unitName
+		addon.guidToName[unitID] = unitRealm and unitRealm ~= "" and format("%s-%s", unitName, unitRealm) or unitName
 		if petID then
 			addon.guidToClass[petID] = unitID
+			addon.guidToName[petID] = UnitName(pet)
 		end
 	end
 	function addon:UpdateGUIDS()
 		self.guidToName = wipe(self.guidToName)
 		self.guidToClass = wipe(self.guidToClass)
-		for pid, uid in pairs(summonguids) do
-			self.guidToClass[pid] = uid
-		end
-		
+
 		local num = GetNumRaidMembers()
 		if num > 0 then
 			for i = 1, num do
@@ -485,10 +477,13 @@ do
 		end
 		
 		-- remove summons from guid list, if owner is gone
-		for pid, uid in pairs(summonguids) do
-			if not self.guidToClass[uid] then
-				self.guidToClass[pid] = nil
-				summonguids[pid] = nil
+		for pid, uid in pairs(summonOwner) do
+			if self.guidToClass[uid] then
+				self.guidToClass[pid] = uid
+				self.guidToName[pid] = summonName[pid]
+			else
+				summonOwner[pid] = nil
+				summonName[pid] = nil
 			end
 		end
 		self:GUIDsUpdated()
@@ -498,6 +493,7 @@ addon.PLAYER_ENTERING_WORLD = addon.UpdateGUIDS
 addon.PARTY_MEMBERS_CHANGED = addon.UpdateGUIDS
 addon.RAID_ROSTER_UPDATE = addon.UpdateGUIDS
 addon.UNIT_PET = addon.UpdateGUIDS
+addon.UNIT_NAME_UPDATE = addon.UpdateGUIDS
 function addon:ZONE_CHANGED_NEW_AREA(force)
 	local _, zoneType = IsInInstance()
 
@@ -516,6 +512,7 @@ function addon:ZONE_CHANGED_NEW_AREA(force)
 			self.events:RegisterEvent("PARTY_MEMBERS_CHANGED")
 			self.events:RegisterEvent("RAID_ROSTER_UPDATE")
 			self.events:RegisterEvent("UNIT_PET")
+			self.events:RegisterEvent("UNIT_NAME_UPDATE")
 			
 			self.events:RegisterEvent("PLAYER_REGEN_DISABLED")
 			self.events:RegisterEvent("PLAYER_REGEN_ENABLED")
@@ -532,6 +529,7 @@ function addon:ZONE_CHANGED_NEW_AREA(force)
 			self.events:UnregisterEvent("PARTY_MEMBERS_CHANGED")
 			self.events:UnregisterEvent("RAID_ROSTER_UPDATE")
 			self.events:UnregisterEvent("UNIT_PET")
+			self.events:UnregisterEvent("UNIT_NAME_UPDATE")
 			
 			self.events:UnregisterEvent("PLAYER_REGEN_DISABLED")
 			self.events:UnregisterEvent("PLAYER_REGEN_ENABLED")
@@ -618,10 +616,14 @@ function addon:COMBAT_LOG_EVENT_UNFILTERED(e, timestamp, eventtype, srcGUID, src
 	local ownerClassOrGUID = self.guidToClass[srcGUID]
 	if eventtype == "SPELL_SUMMON" and ownerClassOrGUID then
 		local realSrcGUID = self.guidToClass[ownerClassOrGUID] and ownerClassOrGUID or srcGUID
-		summonguids[dstGUID] = realSrcGUID
+		summonOwner[dstGUID] = realSrcGUID
+		summonName[dstGUID] = dstName
 		self.guidToClass[dstGUID] = realSrcGUID
-	elseif eventtype == "UNIT_DIED" and summonguids[srcGUID] then
-		summonguids[srcGUID] = nil
+		self.guidToName[dstGUID] = dstName
+	elseif eventtype == "UNIT_DIED" and summonOwner[srcGUID] then
+		summonOwner[srcGUID] = nil
+		summonName[srcGUID] = nil
 		self.guidToClass[srcGUID] = nil
+		self.guidToName[srcGUID] = nil
 	end
 end

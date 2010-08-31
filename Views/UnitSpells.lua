@@ -151,7 +151,7 @@ function view:Report(merged, num_lines)
 		local petName = nameToPetName[sorttbl[i]]
 		local value = nameToValue[sorttbl[i]]
 		local id = nameToId[sorttbl[i]]
-		local name = spellName[id] or id
+		local name = GetSpellLink(id) or GetSpellLink(6603)
 		
 		if petName then
 			name = format("%s <%s>", name, petName)
