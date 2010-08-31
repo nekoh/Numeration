@@ -75,6 +75,7 @@ function window:OnInitialize()
 				{ text = "Raid", arg1 = "RAID", func = reportFunction, notCheckable = 1 },
 				{ text = "Party", arg1 = "PARTY", func = reportFunction, notCheckable = 1 },
 				{ text = "Guild", arg1 = "GUILD", func = reportFunction, notCheckable = 1 },
+				{ text = "Officer", arg1 = "OFFICER", func = reportFunction, notCheckable = 1 },
 				{ text = "Whisper", arg1 = "WHISPER", arg2 = "target", func = reportFunction, notCheckable = 1 },
 				{ text = "Channel  ", notCheckable = 1, keepShownOnClick = true, hasArrow = true, menuList = {} }
 			},
@@ -110,11 +111,11 @@ function window:OnInitialize()
 		reset:SetHeight(s.titleheight)
 		reset:SetPoint("TOPRIGHT", -1, -1)
 		reset:SetScript("OnMouseUp", function()
-			menuTable[2].menuList[6].menuList = table.wipe(menuTable[2].menuList[6].menuList)
+			menuTable[2].menuList[7].menuList = table.wipe(menuTable[2].menuList[7].menuList)
 			for i = 1, GetNumDisplayChannels() do
 				local name, _, _, channelNumber, _, active, category = GetChannelDisplayInfo(i)
 				if category == "CHANNEL_CATEGORY_CUSTOM" then
-					tinsert(menuTable[2].menuList[6].menuList, { text = name, arg1 = "CHANNEL", arg2 = channelNumber, func = reportFunction, notCheckable = 1 })
+					tinsert(menuTable[2].menuList[7].menuList, { text = name, arg1 = "CHANNEL", arg2 = channelNumber, func = reportFunction, notCheckable = 1 })
 				end
 			end
 			EasyMenu(menuTable, dropdown, "cursor", 0 , 0, "MENU")

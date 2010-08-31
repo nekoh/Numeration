@@ -538,7 +538,7 @@ function collect.SPELL_ENERGIZE(timestamp, srcGUID, srcName, srcFlags, dstGUID, 
 		EVENT("pg", dstGUID, dstName, srcName, spellId, amount)
 	end
 end
-collect.SPELL_PERIODIC_ENERGIZE = SPELL_ENERGIZE
+collect.SPELL_PERIODIC_ENERGIZE = collect.SPELL_ENERGIZE
 
 function collect.SPELL_AURA_APPLIED_DOSE(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool, auraType, amount)
 	if addon.ids["deathlog"] and addon.guidToClass[dstGUID] and (auraType == "DEBUFF" or deathlogTrackBuffs[spellName]) then
