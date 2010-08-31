@@ -1,34 +1,32 @@
-local addonname, nMeter = ...
+local addonname, addon = ...
 --------------------------------------------------------------------------------
 -- TODO ------------------------------------------------------------------------
+-- # report deathlog
+-- # report window
 -- oh %
--- report
 -- arenas
 -- * make bottons on window more appealing
--- ? healing + guessed absorbs combined
 -- ? spell details [crit,miss]
 -- ? differentiate between over time- and direct- spells
 -- /run SetCVar('uiScale', 768 / 1050)
 --------------------------------------------------------------------------------
-nMeter.events = CreateFrame("Frame")
-nMeter.events:SetScript("OnEvent", function(self, event, ...)
-	nMeter[event](nMeter, event, ...)
+addon.events = CreateFrame("Frame")
+addon.events:SetScript("OnEvent", function(self, event, ...)
+	addon[event](addon, event, ...)
 end)
-nMeter.views = {}
+addon.views = {}
 -- important GUIDs
-nMeter.guids = {}
-nMeter.names = {}
+addon.guidToClass = {}
+addon.guidToName = {}
 
 -- SETTINGS
 local s = {
-	onlybosses = true,
-	petsmerged = true,
 	refreshinterval = 1,
 	mincombatlength = 15,
 	combatseconds = 3,
 }
 -- available types and their order
-nMeter.types = {
+addon.types = {
 	{
 		name = "Damage",
 		id = "dd",
@@ -60,15 +58,21 @@ nMeter.types = {
 		c = {.63, .58, .24},
 	},
 	{
-		name = "Healing",
+		name = "Healing + Absorbs",
 		id = "hd",
+		id2 = "ga",
 		c = {.25, .5, .85},
 	},
-	{
-		name = "Guessed Absorbs",
-		id = "ga",
-		c = {.25, .5, .85},
-	},
+--	{
+--		name = "Healing",
+--		id = "hd",
+--		c = {.25, .5, .85},
+--	},
+--	{
+--		name = "Guessed Absorbs",
+--		id = "ga",
+--		c = {.25, .5, .85},
+--	},
 	{
 		name = "Overhealing",
 		id = "oh",
@@ -97,359 +101,6 @@ nMeter.types = {
 		c = {.66, .25, .25},
 	},
 }
-
--- Navigation
-nMeter.nav = {
-	view = 'Units',
-	set = 'current',
-	type = 1,
-}
-
--- used colors
-nMeter.color = {
-	HUNTER = { 0.67, 0.83, 0.45 },
-	WARLOCK = { 0.58, 0.51, 0.79 },
-	PRIEST = { 1.0, 1.0, 1.0 },
-	PALADIN = { 0.96, 0.55, 0.73 },
-	MAGE = { 0.41, 0.8, 0.94 },
-	ROGUE = { 1.0, 0.96, 0.41 },
-	DRUID = { 1.0, 0.49, 0.04 },
-	SHAMAN = { 0.14, 0.35, 1.0 },
-	WARRIOR = { 0.78, 0.61, 0.43 },
-	DEATHKNIGHT = { 0.77, 0.12, 0.23 },
-	PET = { 0.09, 0.61, 0.55 },
-}
-nMeter.colorhex = {}
-do
-	for class, c in pairs(nMeter.color) do
-		nMeter.colorhex[class] = string.format("%02X%02X%02X", c[1] * 255, c[2] * 255, c[3] * 255)
-	end
-end
-
-nMeter.spellIcon = setmetatable({ [0] = "", [75] = "", }, { __index = function(tbl, i)
-	local spell, _, icon = GetSpellInfo(i)
-	nMeter.spellName[i] = spell
-	tbl[i] = icon
-	return icon
-end})
-nMeter.spellName = setmetatable({ [0] = "Melee", }, {__index = function(tbl, i)
-	local spell, _, icon = GetSpellInfo(i)
-	nMeter.spellIcon[i] = icon
-	tbl[i] = spell
-	return spell
-end})
-local newSet = function()
-	return {
-		unit = {},
-	}
-end
-local current
-
-nMeter.events:RegisterEvent("ADDON_LOADED")
-function nMeter:ADDON_LOADED(event, addon)
-	if addon ~= addonname then return end
-	self.events:UnregisterEvent("ADDON_LOADED")
-	
-	self.window:OnInitialize()
-	
-	if not nMeterCharDB then
-		self:Reset()
-	end
-	current = self:GetSet(1) or newSet()
-	
-	self.events:RegisterEvent("ZONE_CHANGED_NEW_AREA")
-	
-	if GetRealZoneText() ~= "" then
-		self:ZONE_CHANGED_NEW_AREA(event)
-	end
-end
-
-function nMeter:Reset()
-	local lastZone = nMeterCharDB and nMeterCharDB.zone
-	nMeterCharDB = {
-		[0] = newSet(),
-		zone = lastZone,
-	}
-	current = newSet()
-	if self.nav.set and self.nav.set ~= "total" and self.nav.set ~= "current" then
-		self.nav.set = "current"
-	end
-	nMeter:RefreshDisplay()
-	collectgarbage("collect")
-end
-
-local updateTimer = CreateFrame("Frame")
-updateTimer:Hide()
-updateTimer:SetScript("OnUpdate", function(self, elapsed)
-	self.timer = self.timer - elapsed
-	if self.timer > 0 then return end
-	self.timer = s.refreshinterval
-	
-	if not nMeter.nav.set then return end
-	
-	local set = nMeter:GetSet(nMeter.nav.set)
-	if not set or not set.changed then return end
-	set.changed = nil
-	
-	nMeter:RefreshDisplay(true)
-end)
-function updateTimer:Activate()
-	self.timer = s.refreshinterval
-	self:Show()
-end
-function updateTimer:Refresh()
-	self.timer = s.refreshinterval
-end
-
-function nMeter:RefreshDisplay(update)
-	self.window:Clear()
-	
-	if not update then
-		self.views[self.nav.view]:Init()
-	end
-	self.views[self.nav.view]:Update(s.petsmerged)
-	updateTimer:Refresh()
-end
-
-function nMeter:Scroll(dir)
-	local view = self.views[self.nav.view]
-	if dir > 0 and view.first > 1 then
-		if IsShiftKeyDown() then
-			view.first = 1
-		else
-			view.first = view.first - 1
-		end
-	elseif dir < 0 then
-		if IsShiftKeyDown() then
-			view.first = 9999
-		else
-			view.first = view.first + 1
-		end
-	end
-	self:RefreshDisplay(true)
-end
-
-function nMeter:GetArea(start, total)
-	if total == 0 then return start end
-	
-	local first = start
-	local last = start+self.window.maxlines-1
-	if last > total then
-		first = first-last+total
-		last = total
-	end
-	if first < 1 then
-		first = 1
-	end
-	self.window:SetScrollPosition(first, total)
-	return first, last
-end
-
-function nMeter:TogglePetMerge()
-	s.petsmerged = not s.petsmerged
-	self:RefreshDisplay(true)
-end
-
-function nMeter:GetSet(id)
-	if not id then return end
-	
-	if id == 'current' then
-		return current
-	elseif id == 'total' then
-		id = 0
-	end
-	return nMeterCharDB[id]
-end
-
-function nMeter:GetSets()
-	return nMeterCharDB[0], current.active and current
-end
-
-function nMeter:GetUnitClass(playerID)
-	if not playerID then return end
-	
-	local class = self.guids[playerID]
-	if self.names[class] then
-		return "PET"
-	end
-	return class
-end
-
-function nMeter:GetUnit(set, playerID, playerName)
-	if not playerID then
-		local u = set.unit[playerName]
-		if not u then
-			local utotal = nMeterCharDB[0].unit[playerName]
-			if utotal then
-				u = {
-					name = playerName,
-					class = utotal.class,
-				}
-				set.unit[playerName] = u
-			end
-		end
-		return u
-	end
-	
-	local class = self.guids[playerID]
-	local ownerName = self.names[class]
-	
-	if not ownerName then
-		-- unit
-		local u = set.unit[playerName]
-		if not u then
-			u = {
-				name = playerName,
-				class = class,
-			}
-			set.unit[playerName] = u
-		end
-		return u
-	else
-		-- pet
-		local name = format("%s:%s", ownerName, playerName)
-		local p = set.unit[name]
-		if not p then
-			local ownertable = self:GetUnit(set, class, ownerName)
-			if not ownertable.pets then
-				ownertable.pets = {}
-			end
-			ownertable.pets[name] = true
-
-			p = {
-				name = playerName,
-				class = "PET",
-				owner = ownerName,
-			}
-			set.unit[name] = p
-		end
-		return p, true
-	end
-end
-
-local summonguids = {}
-do
-	local UnitGUID, UnitName, UnitClass
-		= UnitGUID, UnitName, UnitClass
-	local addPlayerPet = function(unit, pet)
-		local unitID = UnitGUID(unit)
-		if not unitID then return end
-		
-		local unitName, unitRealm = UnitName(unit)
-		local _, unitClass = UnitClass(unit)
-		local petID = UnitGUID(pet)
-		
-		nMeter.guids[unitID] = unitClass
-		nMeter.names[unitID] = unitRealm and format("%s-%s", unitName, unitRealm) or unitName
-		if petID then
-			nMeter.guids[petID] = unitID
-		end
-	end
-	function nMeter:UpdateGUIDS()
-		nMeter.names = wipe(nMeter.names)
-		nMeter.guids = wipe(nMeter.guids)
-		for pid, uid in pairs(summonguids) do
-			nMeter.guids[pid] = uid
-		end
-		
-		local num = GetNumRaidMembers()
-		if num > 0 then
-			for i = 1, num do
-				addPlayerPet("raid"..i, "raid"..i.."pet")
-			end
-		else
-			addPlayerPet("player", "pet")
-			local num = GetNumPartyMembers()
-			if num > 0 then
-				for i = 1, num do
-					addPlayerPet("party"..i, "party"..i.."pet")
-				end
-			end
-		end
-		
-		-- remove summons from guid list, if owner is gone
-		for pid, uid in pairs(summonguids) do
-			if not nMeter.guids[uid] then
-				nMeter.guids[pid] = nil
-				summonguids[pid] = nil
-			end
-		end
-		self:GUIDsUpdated()
-	end
-end
-nMeter.PLAYER_ENTERING_WORLD = nMeter.UpdateGUIDS
-nMeter.PARTY_MEMBERS_CHANGED = nMeter.UpdateGUIDS
-nMeter.RAID_ROSTER_UPDATE = nMeter.UpdateGUIDS
-nMeter.UNIT_PET = nMeter.UpdateGUIDS
-function nMeter:ZONE_CHANGED_NEW_AREA()
-	local _, zoneType = IsInInstance()
-
-	if zoneType ~= self.zoneType then
-		self.zoneType = zoneType
-		
-		if zoneType == "party" or zoneType == "raid" then
-			local curZone = GetRealZoneText()
-			if curZone ~= nMeterCharDB.zone then
-				nMeterCharDB.zone = curZone
-				nMeter.window:ShowResetWindow()
-			end
-			self:UpdateGUIDS()
-			
-			self.events:RegisterEvent("PLAYER_ENTERING_WORLD")
-			self.events:RegisterEvent("PARTY_MEMBERS_CHANGED")
-			self.events:RegisterEvent("RAID_ROSTER_UPDATE")
-			self.events:RegisterEvent("UNIT_PET")
-			
-			self.events:RegisterEvent("PLAYER_REGEN_DISABLED")
-			self.events:RegisterEvent("PLAYER_REGEN_ENABLED")
-			
-			self.events:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-			
-			updateTimer:Activate()
-			self:RefreshDisplay()
-			self.window:Show()
-		else
-			self.events:UnregisterEvent("PLAYER_ENTERING_WORLD")
-			self.events:UnregisterEvent("PARTY_MEMBERS_CHANGED")
-			self.events:UnregisterEvent("RAID_ROSTER_UPDATE")
-			self.events:UnregisterEvent("UNIT_PET")
-			
-			self.events:UnregisterEvent("PLAYER_REGEN_DISABLED")
-			self.events:UnregisterEvent("PLAYER_REGEN_ENABLED")
-			
-			self.events:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-			updateTimer:Hide()
-			if zoneType == "none" then
-				self:RefreshDisplay()
-				self.window:Show()
-			else
-				self.window:Hide()
-			end
-		end
-	end
-end
-
-local inCombat = nil
-local combatTimer = CreateFrame("Frame")
-combatTimer:Hide()
-combatTimer:SetScript("OnUpdate", function(self, elapsed)
-	self.timer = self.timer - elapsed
-	if self.timer > 0 then return end
-	nMeter:LeaveCombatEvent()
-	self:Hide()
-end)
-function combatTimer:Activate()
-	self.timer = s.combatseconds
-	self:Show()
-end
-function nMeter:PLAYER_REGEN_DISABLED()
-	inCombat = true
-	combatTimer:Hide()
-end
-function nMeter:PLAYER_REGEN_ENABLED()
-	inCombat = nil
-	combatTimer:Activate()
-end
 
 local bossIds = {
 	-- Naxxramas
@@ -533,9 +184,417 @@ local bossIds = {
 	[37868] = "Valithria Dreamwalker", -- Risen Archmage
 	[36853] = true, -- Sindragosa
 	[36597] = true, -- The Lich King
+	-- Ruby Sanctum
 	[39863] = true, -- Halion
 }
-function nMeter:EnterCombatEvent(timestamp, guid, name)
+
+-- used colors
+addon.color = {
+	HUNTER = { 0.67, 0.83, 0.45 },
+	WARLOCK = { 0.58, 0.51, 0.79 },
+	PRIEST = { 1.0, 1.0, 1.0 },
+	PALADIN = { 0.96, 0.55, 0.73 },
+	MAGE = { 0.41, 0.8, 0.94 },
+	ROGUE = { 1.0, 0.96, 0.41 },
+	DRUID = { 1.0, 0.49, 0.04 },
+	SHAMAN = { 0.14, 0.35, 1.0 },
+	WARRIOR = { 0.78, 0.61, 0.43 },
+	DEATHKNIGHT = { 0.77, 0.12, 0.23 },
+	PET = { 0.09, 0.61, 0.55 },
+}
+addon.colorhex = {}
+do
+	for class, c in pairs(addon.color) do
+		addon.colorhex[class] = string.format("%02X%02X%02X", c[1] * 255, c[2] * 255, c[3] * 255)
+	end
+end
+
+addon.spellIcon = setmetatable({ [0] = "", [75] = "", }, { __index = function(tbl, i)
+	local spell, _, icon = GetSpellInfo(i)
+	addon.spellName[i] = spell
+	tbl[i] = icon
+	return icon
+end})
+addon.spellName = setmetatable({ [0] = "Melee", }, {__index = function(tbl, i)
+	local spell, _, icon = GetSpellInfo(i)
+	addon.spellIcon[i] = icon
+	tbl[i] = spell
+	return spell
+end})
+local newSet = function()
+	return {
+		unit = {},
+	}
+end
+local current
+
+addon.events:RegisterEvent("ADDON_LOADED")
+function addon:ADDON_LOADED(event, loaded_addon)
+	if loaded_addon ~= addonname then return end
+	self.events:UnregisterEvent("ADDON_LOADED")
+	
+	self:InitOptions()
+	self.window:OnInitialize()
+
+	if not nMeterCharDB then
+		self:Reset()
+	end
+	current = self:GetSet(1) or newSet()
+	
+	self.events:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+	
+	if GetRealZoneText() ~= "" then
+		self:ZONE_CHANGED_NEW_AREA(event)
+	end
+end
+
+function addon:InitOptions()
+	if not nMeterCharOptions then
+		nMeterCharOptions = {}
+	end
+	if nMeterCharOptions.keeponlybosses == nil then
+		nMeterCharOptions.keeponlybosses = true
+	end
+	if nMeterCharOptions.petsmerged == nil then
+		nMeterCharOptions.petsmerged = true
+	end
+	if nMeterCharOptions.onlyinstance == nil then
+		nMeterCharOptions.onlyinstance = true
+	end
+	if nMeterCharOptions.deathlog == nil then
+		nMeterCharOptions.deathlog = true
+	end
+	if not nMeterCharOptions.nav then
+		nMeterCharOptions.nav = {
+			view = 'Units',
+			set = 'current',
+			type = 1,
+		}
+	end
+	addon.nav = nMeterCharOptions.nav
+end
+
+function addon:SetOption(option, value)
+	nMeterCharOptions[option] = value
+	if option == "onlyinstance" then
+		self:ZONE_CHANGED_NEW_AREA(true)
+	elseif option == "petsmerged" then
+		self:RefreshDisplay(true)
+	end
+end
+
+function addon:GetOption(option)
+	return nMeterCharOptions[option]
+end
+
+function addon:Reset()
+	local lastZone = nMeterCharDB and nMeterCharDB.zone
+	nMeterCharDB = {
+		[0] = newSet(),
+		zone = lastZone,
+	}
+	nMeterCharDB[0].name = "Overall"
+	current = newSet()
+	if self.nav.set and self.nav.set ~= "total" and self.nav.set ~= "current" then
+		self.nav.set = "current"
+	end
+	addon:RefreshDisplay()
+	collectgarbage("collect")
+end
+
+local updateTimer = CreateFrame("Frame")
+updateTimer:Hide()
+updateTimer:SetScript("OnUpdate", function(self, elapsed)
+	self.timer = self.timer - elapsed
+	if self.timer > 0 then return end
+	self.timer = s.refreshinterval
+	
+	if not addon.nav.set then return end
+	
+	local set = addon:GetSet(addon.nav.set)
+	if not set or not set.changed then return end
+	set.changed = nil
+	
+	addon:RefreshDisplay(true)
+end)
+function updateTimer:Activate()
+	self.timer = s.refreshinterval
+	self:Show()
+end
+function updateTimer:Refresh()
+	self.timer = s.refreshinterval
+end
+
+function addon:RefreshDisplay(update)
+	self.window:Clear()
+	
+	if not update then
+		self.views[self.nav.view]:Init()
+		local segment = self.nav.set == 'total' and "O" or self.nav.set == 'current' and "C" or self.nav.set
+		self.window:UpdateSegment(segment)
+	end
+	self.views[self.nav.view]:Update(nMeterCharOptions.petsmerged)
+	updateTimer:Refresh()
+end
+
+local useChatType, useChannel
+function addon:Report(lines, chatType, channel)
+	useChatType, useChannel = chatType, channel
+	if channel == "target" then
+		useChannel = UnitName("target")
+		if not useChannel or not UnitIsPlayer(useChannel) or not UnitCanCooperate("player", useChannel) then
+			print("Invalid or no target selected")
+			return
+		end
+	end
+	local view = addon.views[addon.nav.view]
+	if view.Report then
+		view:Report(nMeterCharOptions.petsmerged, lines)
+	else
+		print("Report is not supported by '", addon.nav.view, "'-view")
+	end
+end
+
+function addon:PrintHeaderLine(set)
+	local datetext, timetext = self:GetDuration(set)
+	self:PrintLine("# %s for %s%s", self.window:GetTitle(), set.name, datetext and format(" [%s %s]", datetext, timetext) or "")
+end
+
+function addon:PrintLine(...)
+	SendChatMessage(format(...), useChatType, nil, useChannel)
+end
+
+function addon:Scroll(dir)
+	local view = self.views[self.nav.view]
+	if dir > 0 and view.first > 1 then
+		if IsShiftKeyDown() then
+			view.first = 1
+		else
+			view.first = view.first - 1
+		end
+	elseif dir < 0 then
+		if IsShiftKeyDown() then
+			view.first = 9999
+		else
+			view.first = view.first + 1
+		end
+	end
+	self:RefreshDisplay(true)
+end
+
+function addon:GetArea(start, total)
+	if total == 0 then return start end
+	
+	local first = start
+	local last = start+self.window.maxlines-1
+	if last > total then
+		first = first-last+total
+		last = total
+	end
+	if first < 1 then
+		first = 1
+	end
+	self.window:SetScrollPosition(first, total)
+	return first, last
+end
+
+function addon:GetSet(id)
+	if not id then return end
+	
+	if id == 'current' then
+		return current
+	elseif id == 'total' then
+		id = 0
+	end
+	return nMeterCharDB[id]
+end
+
+function addon:GetSets()
+	return nMeterCharDB[0], current.active and current
+end
+
+function addon:GetDuration(set)
+	if not set.start or not set.now then return end
+	local duration = math.ceil(set.now-set.start)
+	local durationtext = duration < 60 and format("%is", duration%60) or format("%im%is", math.floor(duration/60), duration%60)
+	return date("%H:%M", set.start), durationtext
+end
+
+function addon:GetUnitClass(playerID)
+	if not playerID then return end
+	
+	local class = self.guidToClass[playerID]
+	if self.guidToName[class] then
+		return "PET"
+	end
+	return class
+end
+
+function addon:GetUnit(set, playerID, playerName)
+	local class = self.guidToClass[playerID]
+	local ownerName = self.guidToName[class]
+	if not playerName then
+		playerName = self.guidToName[playerID]
+	end
+	
+	if not ownerName then
+		-- unit
+		local u = set.unit[playerName]
+		if not u then
+			u = {
+				name = playerName,
+				class = class,
+			}
+			set.unit[playerName] = u
+		end
+		return u
+	else
+		-- pet
+		local name = format("%s:%s", ownerName, playerName)
+		local p = set.unit[name]
+		if not p then
+			local ownertable = self:GetUnit(set, class, ownerName)
+			if not ownertable.pets then
+				ownertable.pets = {}
+			end
+			ownertable.pets[name] = true
+
+			p = {
+				name = playerName,
+				class = "PET",
+				owner = ownerName,
+			}
+			set.unit[name] = p
+		end
+		return p, true
+	end
+end
+
+local summonguids = {}
+do
+	local UnitGUID, UnitName, UnitClass
+		= UnitGUID, UnitName, UnitClass
+	local addPlayerPet = function(unit, pet)
+		local unitID = UnitGUID(unit)
+		if not unitID then return end
+		
+		local unitName, unitRealm = UnitName(unit)
+		local _, unitClass = UnitClass(unit)
+		local petID = UnitGUID(pet)
+		
+		addon.guidToClass[unitID] = unitClass
+		addon.guidToName[unitID] = unitRealm and format("%s-%s", unitName, unitRealm) or unitName
+		if petID then
+			addon.guidToClass[petID] = unitID
+		end
+	end
+	function addon:UpdateGUIDS()
+		addon.guidToName = wipe(addon.guidToName)
+		addon.guidToClass = wipe(addon.guidToClass)
+		for pid, uid in pairs(summonguids) do
+			addon.guidToClass[pid] = uid
+		end
+		
+		local num = GetNumRaidMembers()
+		if num > 0 then
+			for i = 1, num do
+				addPlayerPet("raid"..i, "raid"..i.."pet")
+			end
+		else
+			addPlayerPet("player", "pet")
+			local num = GetNumPartyMembers()
+			if num > 0 then
+				for i = 1, num do
+					addPlayerPet("party"..i, "party"..i.."pet")
+				end
+			end
+		end
+		
+		-- remove summons from guid list, if owner is gone
+		for pid, uid in pairs(summonguids) do
+			if not addon.guidToClass[uid] then
+				addon.guidToClass[pid] = nil
+				summonguids[pid] = nil
+			end
+		end
+		self:GUIDsUpdated()
+	end
+end
+addon.PLAYER_ENTERING_WORLD = addon.UpdateGUIDS
+addon.PARTY_MEMBERS_CHANGED = addon.UpdateGUIDS
+addon.RAID_ROSTER_UPDATE = addon.UpdateGUIDS
+addon.UNIT_PET = addon.UpdateGUIDS
+function addon:ZONE_CHANGED_NEW_AREA(force)
+	local _, zoneType = IsInInstance()
+
+	if force == true or zoneType ~= self.zoneType then
+		self.zoneType = zoneType
+		
+		if not nMeterCharOptions.onlyinstance or zoneType == "party" or zoneType == "raid" then
+			local curZone = GetRealZoneText()
+			if curZone ~= nMeterCharDB.zone then
+				nMeterCharDB.zone = curZone
+				addon.window:ShowResetWindow()
+			end
+			self:UpdateGUIDS()
+			
+			self.events:RegisterEvent("PLAYER_ENTERING_WORLD")
+			self.events:RegisterEvent("PARTY_MEMBERS_CHANGED")
+			self.events:RegisterEvent("RAID_ROSTER_UPDATE")
+			self.events:RegisterEvent("UNIT_PET")
+			
+			self.events:RegisterEvent("PLAYER_REGEN_DISABLED")
+			self.events:RegisterEvent("PLAYER_REGEN_ENABLED")
+			
+			self.events:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+			
+			updateTimer:Activate()
+			self:RefreshDisplay()
+			self.window:Show()
+		else
+			self.events:UnregisterEvent("PLAYER_ENTERING_WORLD")
+			self.events:UnregisterEvent("PARTY_MEMBERS_CHANGED")
+			self.events:UnregisterEvent("RAID_ROSTER_UPDATE")
+			self.events:UnregisterEvent("UNIT_PET")
+			
+			self.events:UnregisterEvent("PLAYER_REGEN_DISABLED")
+			self.events:UnregisterEvent("PLAYER_REGEN_ENABLED")
+			
+			self.events:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+			updateTimer:Hide()
+			if zoneType == "none" then
+				self:RefreshDisplay()
+				self.window:Show()
+			else
+				self.window:Hide()
+			end
+		end
+	end
+end
+
+local inCombat = nil
+local combatTimer = CreateFrame("Frame")
+combatTimer:Hide()
+combatTimer:SetScript("OnUpdate", function(self, elapsed)
+	self.timer = self.timer - elapsed
+	if self.timer > 0 then return end
+	addon:LeaveCombatEvent()
+	self:Hide()
+end)
+function combatTimer:Activate()
+	self.timer = s.combatseconds
+	self:Show()
+end
+function addon:PLAYER_REGEN_DISABLED()
+	inCombat = true
+	combatTimer:Hide()
+end
+function addon:PLAYER_REGEN_ENABLED()
+	inCombat = nil
+	combatTimer:Activate()
+end
+
+function addon:EnterCombatEvent(timestamp, guid, name)
 	if not current.active then
 		current = newSet()
 		current.start = timestamp
@@ -557,10 +616,10 @@ function nMeter:EnterCombatEvent(timestamp, guid, name)
 	end
 end
 
-function nMeter:LeaveCombatEvent()
+function addon:LeaveCombatEvent()
 	if current.active then
 		current.active = nil
-		if ((current.now - current.start) < s.mincombatlength) or (s.onlybosses and not current.boss) then
+		if ((current.now - current.start) < s.mincombatlength) or (nMeterCharOptions.keeponlybosses and not current.boss) then
 			return
 		end
 		tinsert(nMeterCharDB, 1, current)
@@ -569,24 +628,22 @@ function nMeter:LeaveCombatEvent()
 		end
 		
 		-- Refresh View
-		if self.nav.view == 'Sets' then
-			self:RefreshDisplay(true)
-		end
+		self:RefreshDisplay(true)
 	end
 end
 
-function nMeter:COMBAT_LOG_EVENT_UNFILTERED(e, timestamp, eventtype, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, ...)
+function addon:COMBAT_LOG_EVENT_UNFILTERED(e, timestamp, eventtype, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, ...)
 	if self.collect[eventtype] then
 		self.collect[eventtype](timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, ...)
 	end
 
-	local ownerClassOrGUID = self.guids[srcGUID]
+	local ownerClassOrGUID = self.guidToClass[srcGUID]
 	if eventtype == 'SPELL_SUMMON' and ownerClassOrGUID then
-		local realSrcGUID = self.guids[ownerClassOrGUID] and ownerClassOrGUID or srcGUID
+		local realSrcGUID = self.guidToClass[ownerClassOrGUID] and ownerClassOrGUID or srcGUID
 		summonguids[dstGUID] = realSrcGUID
-		self.guids[dstGUID] = realSrcGUID
+		self.guidToClass[dstGUID] = realSrcGUID
 	elseif eventtype == 'UNIT_DIED' and summonguids[srcGUID] then
 		summonguids[srcGUID] = nil
-		self.guids[srcGUID] = nil
+		self.guidToClass[srcGUID] = nil
 	end
 end

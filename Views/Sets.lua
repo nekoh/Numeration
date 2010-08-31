@@ -14,14 +14,6 @@ local detailAction = function(f)
 	addon:RefreshDisplay()
 end
 
-local getDuration = function(duration)
-	if duration > 60 then
-		return format("%im%is", math.floor(duration/60), math.ceil(duration%60))
-	else
-		return format("%is", math.ceil(duration%60))
-	end
-end
-
 local setLine = function(lineid, setid, title)
 	local set = addon:GetSet(setid)
 	local line = addon.window:GetLine(lineid)
@@ -31,8 +23,9 @@ local setLine = function(lineid, setid, title)
 	else
 		line:SetLeftText("%i. %s", setid, set.name)
 	end
-	if set.start and set.now then
-		line:SetRightText("%s  %s", getDuration(set.now-set.start), date("%H:%M", set.start))
+	local datetext, timetext = addon:GetDuration(set)
+	if datetext then
+		line:SetRightText("%s  %s", timetext, datetext)
 	else
 		line:SetRightText("")
 	end

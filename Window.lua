@@ -43,15 +43,70 @@ function window:OnInitialize()
 	self:SetWidth(s.width)
 	self:SetHeight(3+s.titleheight+s.maxlines*(s.lineheight+s.linegap))
 
+	self:SetClampedToScreen(true)
     self:EnableMouse(true)
 	self:EnableMouseWheel(true)
     self:SetMovable(true)
     self:RegisterForDrag("LeftButton")
+	self:SetScript("OnDragStart", function() if IsAltKeyDown() then self:StartMoving() end end)
+	self:SetScript("OnDragStop", function()
+		self:StopMovingOrSizing()
+		
+		-- positioning code taken from recount
+		local xOfs, yOfs = self:GetCenter()
+		local s = self:GetEffectiveScale()
+		local uis = UIParent:GetScale()
+		xOfs = xOfs*s - GetScreenWidth()*uis/2
+		yOfs = yOfs*s - GetScreenHeight()*uis/2
+		
+		addon:SetOption("x", xOfs/uis)
+		addon:SetOption("y", yOfs/uis)
+	end)
 
 	self:SetBackdrop(backdrop)
 	self:SetBackdropColor(0, 0, 0, 1)
 	
-	self:SetPoint(unpack(s.pos))
+	local x, y = addon:GetOption("x"), addon:GetOption("y")
+	if not x or not y then
+		self:SetPoint(unpack(s.pos))
+	else
+		-- positioning code taken from recount
+		local s = self:GetEffectiveScale()
+		local uis = UIParent:GetScale()
+		self:SetPoint("CENTER", UIParent, "CENTER", x*uis/s, y*uis/s)
+	end
+
+	local dropdown = CreateFrame("Frame", "nMeterMenuFrame", nil, "UIDropDownMenuTemplate")
+	local optionFunction = function(f, id, _, checked)
+		addon:SetOption(id, checked)
+	end
+	local reportFunction = function(f, chatType, channel)
+		addon:Report(9, chatType, channel)
+		CloseDropDownMenus()
+	end
+	local menuTable = {
+		{ text = "Numeration", isTitle = true, notCheckable = 1, notClickable = true },
+		{ text = "Report", notCheckable = 1, hasArrow = true,
+			menuList = {
+				{ text = 'Say', arg1 = "SAY", func = reportFunction, notCheckable = 1 },
+				{ text = 'Raid', arg1 = "RAID", func = reportFunction, notCheckable = 1 },
+				{ text = 'Party', arg1 = "PARTY", func = reportFunction, notCheckable = 1 },
+				{ text = 'Guild', arg1 = "GUILD", func = reportFunction, notCheckable = 1 },
+				{ text = 'Whisper', arg1 = "WHISPER", arg2 = "target", func = reportFunction, notCheckable = 1 },
+				{ text = 'Channel  ', notCheckable = 1, keepShownOnClick = true, hasArrow = true, menuList = {} }
+			},
+		},
+		{ text = "Options", notCheckable = 1, hasArrow = true,
+			menuList = {
+				{ text = "Merge Pets w/ Owners", arg1 = "petsmerged", func = optionFunction, checked = function() return addon:GetOption("petsmerged") end, keepShownOnClick = true },
+				{ text = "Keep Only Boss Segments", arg1 = "keeponlybosses", func = optionFunction, checked = function() return addon:GetOption("keeponlybosses") end, keepShownOnClick = true },
+				{ text = "Record Deathlog", arg1 = "deathlog", func = optionFunction, checked = function() return addon:GetOption("deathlog") end, keepShownOnClick = true },
+				{ text = "Record Only In Instances", arg1 = "onlyinstance", func = optionFunction, checked = function() return addon:GetOption("onlyinstance") end, keepShownOnClick = true },
+			},
+		},
+		{ text = "", notClickable = true },
+		{ text = "Reset", func = function() self:ShowResetWindow() end, notCheckable = 1 },
+	}
 
 	local scroll = self:CreateTexture(nil, "ARTWORK")
 	self.scroll = scroll
@@ -67,34 +122,57 @@ function window:OnInitialize()
 		reset:SetBackdrop(backdrop)
 		reset:SetBackdropColor(0, 0, 0, .8)
 		reset:SetNormalFontObject(ChatFontSmall)
-		reset:SetText("R")
+		reset:SetText(">")
 		reset:SetWidth(s.titleheight)
 		reset:SetHeight(s.titleheight)
 		reset:SetPoint("TOPRIGHT", -1, -1)
-		reset:SetScript("OnMouseUp", function() window:ShowResetWindow() end)
-		reset:SetScript("OnEnter", function() reset:SetBackdropColor(1, .82, 0, .8) GameTooltip:SetOwner(reset, "ANCHOR_BOTTOMRIGHT") GameTooltip:AddLine("Reset Data") GameTooltip:Show() end)
-		reset:SetScript("OnLeave", function() reset:SetBackdropColor(0, 0, 0, .8) GameTooltip:Hide() end)
+		reset:SetScript("OnMouseUp", function()
+			menuTable[2].menuList[6].menuList = table.wipe(menuTable[2].menuList[6].menuList)
+			for i = 1, GetNumDisplayChannels() do
+				local name, _, _, channelNumber, _, active, category = GetChannelDisplayInfo(i)
+				if category == "CHANNEL_CATEGORY_CUSTOM" then
+					tinsert(menuTable[2].menuList[6].menuList, { text = name, arg1 = "CHANNEL", arg2 = channelNumber, func = reportFunction, notCheckable = 1 })
+				end
+			end
+			EasyMenu(menuTable, dropdown, "cursor", 0 , 0, "MENU")
+		end)
+		reset:SetScript("OnEnter", function() reset:SetBackdropColor(1, .82, 0, .8) end)
+		reset:SetScript("OnLeave", function() reset:SetBackdropColor(0, 0, 0, .8) end)
 	
-	local pets = CreateFrame("Button", nil, self)
-	self.pets = pets
-		pets:SetBackdrop(backdrop)
-		pets:SetBackdropColor(0, 0, 0, .8)
-		pets:SetNormalFontObject(ChatFontSmall)
-		pets:SetText("P")
-		pets:SetWidth(s.titleheight)
-		pets:SetHeight(s.titleheight)
-		pets:SetPoint("RIGHT", reset, "LEFT", -1, 0)
-		pets:SetScript("OnMouseUp", function() addon:TogglePetMerge() end)
-		pets:SetScript("OnEnter", function() pets:SetBackdropColor(1, .82, 0, .8) GameTooltip:SetOwner(pets, "ANCHOR_BOTTOMRIGHT") GameTooltip:AddLine("Toggle merging pets with owners") GameTooltip:Show() end)
-		pets:SetScript("OnLeave", function() pets:SetBackdropColor(0, 0, 0, .8) GameTooltip:Hide() end)
-	
+	local segment = CreateFrame("Button", nil, self)
+	self.segment = segment
+		segment:SetBackdrop(backdrop)
+		segment:SetBackdropColor(0, 0, 0, .5)
+		segment:SetNormalFontObject(ChatFontSmall)
+		segment:SetText(" ")
+		segment:SetWidth(s.titleheight-2)
+		segment:SetHeight(s.titleheight-2)
+		segment:SetPoint("RIGHT", reset, "LEFT", -2, 0)
+		segment:SetScript("OnMouseUp", function() addon.nav.view = 'Sets' addon.nav.set = nil addon:RefreshDisplay() dropdown:Show() end)
+		segment:SetScript("OnEnter", function()
+			segment:SetBackdropColor(1, .82, 0, .8)
+			GameTooltip:SetOwner(segment, "ANCHOR_BOTTOMRIGHT")
+			local name = ""
+			if addon.nav.set == 'current' then
+				name = "Current Fight"
+			else
+				local set = addon:GetSet(addon.nav.set)
+				if set then
+					name = set.name
+				end
+			end
+			GameTooltip:AddLine(name)
+			GameTooltip:Show()
+		end)
+		segment:SetScript("OnLeave", function() segment:SetBackdropColor(0, 0, 0, .8) GameTooltip:Hide() end)
+
 	local title = self:CreateTexture(nil, "ARTWORK")
 	self.title = title
 		title:SetTexture([[Interface\TargetingFrame\UI-StatusBar]])
 		title:SetTexCoord(.8, 1, .8, 1)
 		title:SetVertexColor(.25, .66, .35, .9)
 		title:SetPoint("TOPLEFT", 1, -1)
-		title:SetPoint("BOTTOMRIGHT", pets, "BOTTOMLEFT", -1, 0)
+		title:SetPoint("BOTTOMRIGHT", reset, "BOTTOMLEFT", -1, 0)
 	local font = self:CreateFontString(nil, "ARTWORK")
 	self.titletext = font
 		font:SetJustifyH("LEFT")
@@ -102,7 +180,7 @@ function window:OnInitialize()
 		font:SetTextColor(s.titlefontcolor[1], s.titlefontcolor[2], s.titlefontcolor[3], 1)
 		font:SetHeight(s.titleheight)
 		font:SetPoint("LEFT", title, "LEFT", 4, 0)
-		font:SetPoint("RIGHT", title, "RIGHT", -1, 0)
+		font:SetPoint("RIGHT", segment, "LEFT", -1, 0)
 
 	self.detailAction = noop
 	self:SetScript("OnMouseDown", clickFunction)
@@ -122,9 +200,22 @@ function window:Clear()
 	end
 end
 
+function window:UpdateSegment(segment)
+	if not segment then
+		self.segment:Hide()
+	else
+		self.segment:SetText(segment)
+		self.segment:Show()
+	end
+end
+
 function window:SetTitle(name, r, g, b)
 	self.title:SetVertexColor(r, g, b, .9)
 	self.titletext:SetText(name)
+end
+
+function window:GetTitle()
+	return self.titletext:GetText()
 end
 
 function window:SetScrollPosition(curPos, maxPos)
@@ -136,11 +227,7 @@ function window:SetScrollPosition(curPos, maxPos)
 end
 
 function window:SetBackAction(f)
-	if f then
-		backAction = f
-	else
-		backAction = noop
-	end
+	backAction = f or noop
 end
 
 local SetValues = function(f, c, m)

@@ -76,9 +76,9 @@ function view:Update()
 	if not self.last then return end
 
 	local total = set.start and set.now and (set.now-set.start) or 1
-	for i = #dl-self.first+1, #dl-self.last+1, -1 do
+	for i = self.first, self.last do
 		local entry = dl[i]
-		local line = addon.window:GetLine(#dl-self.first+1-i)
+		local line = addon.window:GetLine(i-self.first)
 		
 		local playerName, class, event, info = strsplit("#", entry[0])
 		local icon, text, spellId = eventInfo[event](event, playerName, class, strsplit(":", info))

@@ -4,7 +4,7 @@
 ## Notes: Meter for various data
 ## Author: nekoh
 ## Version: 3.3.0
-## SavedVariablesPerCharacter: nMeterCharDB
+## SavedVariablesPerCharacter: nMeterCharDB, nMeterCharOptions
 
 Core.lua
 Window.lua

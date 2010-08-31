@@ -27,13 +27,7 @@ local sorter = function(u1, u2)
 	return unitToValue[u1] > unitToValue[u2]
 end
 
-function view:Update(merged)
-	local set = addon:GetSet(addon.nav.set)
-	if not set then backAction() return end
-	local target = addon.nav.target
-	local etype = addon.types[addon.nav.type].id
-	
-	-- compile and sort information table
+local updateTables = function(set, target, etype, merged)
 	local total = 0
 	for name,u in pairs(set.unit) do
 		if u[etype] and u[etype].target and u[etype].target[target] then
@@ -48,6 +42,17 @@ function view:Update(merged)
 		end
 	end
 	table.sort(sorttbl, sorter)
+	return total
+end
+
+function view:Update(merged)
+	local set = addon:GetSet(addon.nav.set)
+	if not set then backAction() return end
+	local target = addon.nav.target
+	local etype = addon.types[addon.nav.type].id
+	
+	-- compile and sort information table
+	local total = updateTables(set, target, etype, merged)
 	
 	-- display
 	self.first, self.last = addon:GetArea(self.first, #sorttbl)
@@ -70,6 +75,36 @@ function view:Update(merged)
 		line:SetColor(c[1], c[2], c[3])
 		line:SetDetailAction(nil)
 		line:Show()
+	end
+	
+	sorttbl = wipe(sorttbl)
+	unitToValue = wipe(unitToValue)
+end
+
+function view:Report(merged, num_lines)
+	local set = addon:GetSet(addon.nav.set)
+	local target = addon.nav.target
+	local etype = addon.types[addon.nav.type].id
+	
+	-- compile and sort information table
+	local total = updateTables(set, target, etype, merged)
+	if #sorttbl == 0 then return end
+	if #sorttbl < num_lines then
+		num_lines = #sorttbl
+	end
+	
+	-- display
+	addon:PrintHeaderLine(set)
+	for i = 1, num_lines do
+		local u = sorttbl[i]
+		local value = unitToValue[u]
+		
+		local name = u.name
+		if u.owner then
+			name = format("%s <%s>", u.name, u.owner)
+		end
+
+		addon:PrintLine("%i. %s %i (%02.1f%%)", i, name, value, value/total*100)
 	end
 	
 	sorttbl = wipe(sorttbl)

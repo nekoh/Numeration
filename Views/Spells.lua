@@ -3,6 +3,9 @@ local view = {}
 addon.views["Spells"] = view
 view.first = 1
 
+local spellName = addon.spellName
+local spellIcon = addon.spellIcon
+
 local backAction = function(f)
 	view.first = 1
 	addon.nav.view = 'Type'
@@ -29,14 +32,7 @@ local sorter = function(s1, s2)
 	return spellToValue[s1] > spellToValue[s2]
 end
 
-local spellName = addon.spellName
-local spellIcon = addon.spellIcon
-function view:Update(merged)
-	local set = addon:GetSet(addon.nav.set)
-	if not set then return end
-	local etype = addon.types[addon.nav.type].id
-	
-	-- compile and sort information table
+local updateTables = function(set, etype)
 	local total = 0
 	for name,u in pairs(set.unit) do
 		if u[etype] then
@@ -52,6 +48,16 @@ function view:Update(merged)
 		end
 	end
 	table.sort(sorttbl, sorter)
+	return total
+end
+
+function view:Update(merged)
+	local set = addon:GetSet(addon.nav.set)
+	if not set then return end
+	local etype = addon.types[addon.nav.type].id
+	
+	-- compile and sort information table
+	local total = updateTables(set, etype)
 	
 	-- display
 	self.first, self.last = addon:GetArea(self.first, #sorttbl)
@@ -76,6 +82,31 @@ function view:Update(merged)
 		line.spell = id
 		line:SetDetailAction(detailAction)
 		line:Show()
+	end
+	
+	sorttbl = wipe(sorttbl)
+	spellToValue = wipe(spellToValue)
+end
+
+function view:Report(merged, num_lines)
+	local set = addon:GetSet(addon.nav.set)
+	if not set then return end
+	local etype = addon.types[addon.nav.type].id
+	
+	-- compile and sort information table
+	local total = updateTables(set, etype)
+	if #sorttbl == 0 then return end
+	if #sorttbl < num_lines then
+		num_lines = #sorttbl
+	end
+	
+	-- display
+	addon:PrintHeaderLine(set)
+	for i = 1, num_lines do
+		local value = spellToValue[sorttbl[i]]
+		local name = spellName[sorttbl[i]]
+
+		addon:PrintLine("%i. %s %i (%02.1f%%)", i, name, value, value/total*100)
 	end
 	
 	sorttbl = wipe(sorttbl)

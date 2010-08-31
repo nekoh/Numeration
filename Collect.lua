@@ -2,8 +2,6 @@
 local collect = {}
 addon.collect = collect
 
-local DEATHLOG = false;
-
 local	UnitHealth, UnitHealthMax =
 		UnitHealth, UnitHealthMax
 
@@ -141,7 +139,7 @@ local function unitDied(timestamp, playerID, playerName)
 	local deathlog = {
 		time = timestamp,
 	}
-	local _spellId, _srcName , _spellSchool, _amount
+	local _spellId, _srcName, _spellSchool, _amount
 	local dd = getDeathData(playerID, timestamp)
 	if dd then
 		for i = dd.first, dd.last do
@@ -212,7 +210,7 @@ end
 
 function addon:GUIDsUpdated()
 	for playerID, dd in pairs(deathData) do
-		if not self.guids[playerID] then
+		if not self.guidToClass[playerID] then
 			clearEvts(playerID)
 		end
 	end
@@ -355,6 +353,7 @@ local AbsorbSpellDuration = {
 	[37515] = 15, -- Warbringer Armor Proc
 	[42137] = 86400, -- Greater Rune of Warding Proc
 	[26467] = 30, -- Scarab Brooch proc
+	[26470] = 8, -- Scarab Brooch proc (actual)
 	[27539] = 6, -- Thick Obsidian Breatplate proc
 	[28810] = 30, -- Faith Set Proc Armor of Faith
 	[54808] = 12, -- Noise Machine proc Sonic Shield 
@@ -443,29 +442,30 @@ end
 local shields = {}
 local function findAbsorber(timestamp, dstName, amount)
 	if not shields[dstName] then return end
-	local mintime = 60
-	local shielderName, shieldSpellId
+	local mintime = 999
+	local shielderId, shieldSpellId
 	for shield_id, spells in pairs(shields[dstName]) do
 		for shield_src, ts in pairs(spells) do
 			local time_diff = ts - timestamp
-			if time_diff > -0.1 and time_diff < mintime then
-				shielderName = shield_src
-				shieldSpellId = shield_id
-			else
+			if time_diff < -0.1 then
 				spells[shield_src] = nil
+			elseif time_diff < mintime then
+				mintime = time_diff
+				shielderId = shield_src
+				shieldSpellId = shield_id
 			end
 		end
 	end
 	
-	if shielderName then
-		EVENT('ga', nil, shielderName, dstName, shieldSpellId, amount)
+	if shielderId and addon.guidToClass[shielderId] then
+		EVENT('ga', shielderId, nil, dstName, shieldSpellId, amount)
 	end
 end
 
 -- COMBAT LOG EVENTS --
 function collect.SPELL_DAMAGE(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool, amount, overkill, school, resisted, blocked, absorbed, critical, glancing, crushing)
-	local srcFriend = addon.guids[srcGUID]
-	local dstFriend = addon.guids[dstGUID]
+	local srcFriend = addon.guidToClass[srcGUID]
+	local dstFriend = addon.guidToClass[dstGUID]
 	if dstFriend then
 		if srcFriend then
 			EVENT('ff', srcGUID, srcName, dstName, spellId, amount)
@@ -476,7 +476,9 @@ function collect.SPELL_DAMAGE(timestamp, srcGUID, srcName, srcFlags, dstGUID, ds
 		if absorbed then
 			findAbsorber(timestamp, dstName, absorbed)
 		end
-		addEvt(dstGUID, dstName, fmtDamage, timestamp, srcName, spellId, spellSchool, amount, overkill, resisted, blocked, absorbed, critical, glancing, crushing)
+		if addon:GetOption("deathlog") then
+			addEvt(dstGUID, dstName, fmtDamage, timestamp, srcName, spellId, spellSchool, amount, overkill, resisted, blocked, absorbed, critical, glancing, crushing)
+		end
 	elseif srcFriend then
 		addon:EnterCombatEvent(timestamp, dstGUID, dstName)
 		EVENT('dd', srcGUID, srcName, dstName, spellId, amount)
@@ -493,8 +495,10 @@ end
 
 -- TODO: later when misses tracked, add here
 function collect.SPELL_MISSED(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool, missType, amountMissed)
-	if addon.guids[dstGUID] then
-		addEvt(dstGUID, dstName, fmtMiss, timestamp, srcName, spellId, spellSchool, missType, amountMissed)
+	if addon.guidToClass[dstGUID] then
+		if addon:GetOption("deathlog") then
+			addEvt(dstGUID, dstName, fmtMiss, timestamp, srcName, spellId, spellSchool, missType, amountMissed)
+		end
 		if amountMissed and missType == "ABSORB" then
 			findAbsorber(timestamp, dstName, amountMissed)
 		end
@@ -508,21 +512,21 @@ function collect.SWING_MISSED(timestamp, srcGUID, srcName, srcFlags, dstGUID, ds
 end
 
 function collect.SPELL_HEAL(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool, amount, overhealing, absorbed, critical)
-	if addon.guids[srcGUID] then
+	if addon.guidToClass[srcGUID] then
 		if overhealing > 0 then
 			EVENT('oh', srcGUID, srcName, dstName, spellId, overhealing)
 		end
 		EVENT('hd', srcGUID, srcName, dstName, spellId, amount - overhealing)
 		TIMEEVENT('hd', timestamp, srcGUID, srcName)
 	end
-	if addon.guids[dstGUID] and not deathlogHealFilter[spellName] then
+	if addon:GetOption("deathlog") and addon.guidToClass[dstGUID] and not deathlogHealFilter[spellName] then
 		addEvt(dstGUID, dstName, fmtHealing, timestamp, srcName, spellId, amount, overhealing, critical)
 	end
 end
 collect.SPELL_PERIODIC_HEAL = collect.SPELL_HEAL
 
 function collect.SPELL_DISPEL(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool, extraSpellID, extraSpellName, extraSchool, auraType)
-	if addon.guids[srcGUID] then
+	if addon.guidToClass[srcGUID] then
 		EVENT('dp', srcGUID, srcName, dstName, extraSpellID, 1)
 	end
 end
@@ -530,38 +534,38 @@ collect.SPELL_PERIODIC_DISPEL = collect.SPELL_DISPEL
 -- SPELL_DISPEL_FAILED TODO: later when misses tracked
 
 function collect.SPELL_INTERRUPT(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool, extraSpellID, extraSpellName, extraSchool)
-	if addon.guids[srcGUID] then
+	if addon.guidToClass[srcGUID] then
 		EVENT('ir', srcGUID, srcName, dstName, extraSpellID, 1)
 	end
 end
 
 
 function collect.SPELL_ENERGIZE(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool, amount, powerType)
-	if addon.guids[dstGUID] and powerType == 0 then
+	if addon.guidToClass[dstGUID] and powerType == 0 then
 		EVENT('mg', dstGUID, dstName, srcName, spellId, amount)
 	end
 end
 collect.SPELL_PERIODIC_ENERGIZE = SPELL_ENERGIZE
 
 function collect.SPELL_AURA_APPLIED_DOSE(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool, auraType, amount)
-	if addon.guids[dstGUID] and (auraType == "DEBUFF" or deathlogTrackBuffs[spellName]) then
+	if addon:GetOption("deathlog") and addon.guidToClass[dstGUID] and (auraType == "DEBUFF" or deathlogTrackBuffs[spellName]) then
 		addEvt(dstGUID, dstName, fmtDeBuff, timestamp, spellId, auraType, amount or 1, "+")
 	end
 	local duration = AbsorbSpellDuration[spellId]
-	if duration and addon.guids[srcGUID] and addon.guids[dstGUID] then
+	if duration and addon.guidToClass[srcGUID] and addon.guidToClass[dstGUID] then
 		shields[dstName] = shields[dstName] or {}
 		shields[dstName][spellId] = shields[dstName][spellId] or {}
-		shields[dstName][spellId][srcName] = timestamp + duration
+		shields[dstName][spellId][srcGUID] = timestamp + duration
 	end
 end
 collect.SPELL_AURA_APPLIED = collect.SPELL_AURA_APPLIED_DOSE
 collect.SPELL_AURA_REFRESH = collect.SPELL_AURA_APPLIED_DOSE
 collect.SPELL_AURA_REMOVED_DOSE = collect.SPELL_AURA_APPLIED_DOSE
 function collect.SPELL_AURA_REMOVED(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool, auraType)
-	if addon.guids[dstGUID] and (auraType == "DEBUFF" or deathlogTrackBuffs[spellName]) then
+	if addon:GetOption("deathlog") and addon.guidToClass[dstGUID] and (auraType == "DEBUFF" or deathlogTrackBuffs[spellName]) then
 		addEvt(dstGUID, dstName, fmtDeBuff, timestamp, spellId, auraType, 1, "-")
 	end
-	if AbsorbSpellDuration[spellId] and addon.guids[srcGUID] and addon.guids[dstGUID] then
+	if AbsorbSpellDuration[spellId] and addon.guidToClass[srcGUID] and addon.guidToClass[dstGUID] then
 		if shields[dstName] and shields[dstName][spellId] and shields[dstName][spellId][srcName] then
 			-- As advised in RecountGuessedAbsorbs, do not remove shields straight away as an absorb can come after the aura removed event.
 			shields[dstName][spellId][srcName] = timestamp + 0.1
@@ -570,13 +574,13 @@ function collect.SPELL_AURA_REMOVED(timestamp, srcGUID, srcName, srcFlags, dstGU
 end
 
 function collect.UNIT_DIED(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags)
-	if addon.guids[dstGUID] then
+	if addon:GetOption("deathlog") and addon.guidToClass[dstGUID] then
 		unitDied(timestamp, dstGUID, dstName)
 	end
 end
 
 function collect.SPELL_RESURRECT(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool)
-	if addon.guids[dstGUID] then
+	if addon:GetOption("deathlog") and addon.guidToClass[dstGUID] then
 		unitRezzed(timestamp, dstGUID, dstName, spellId, srcName)
 	end
 end

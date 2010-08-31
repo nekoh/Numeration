@@ -28,28 +28,26 @@ end
 
 local sorttbl = {}
 local nameToValue = {}
-local nameToUnit = {}
+local nameToPetName = {}
 local nameToTarget = {}
 local sorter = function(n1, n2)
 	return nameToValue[n1] > nameToValue[n2]
 end
 
-function view:Update(merged)
-	local set = addon:GetSet(addon.nav.set)
-	if not set then backAction() return end
-	local u = set.unit[addon.nav.unit]
-	if not u then backAction() return end
-	local etype = addon.types[addon.nav.type].id
-	
-	-- compile and sort information table
+local updateTables = function(set, u, etype, merged)
+	if not etype then return 0 end
 	local total = 0
 	if u[etype] then
 		total = u[etype].total
 		for target, amount in pairs(u[etype].target) do
 			local name = format("%s%s", u.name, target)
-			nameToValue[name] = amount
-			nameToTarget[name] = target
-			tinsert(sorttbl, name)
+			if not nameToValue[name] then
+				nameToValue[name] = amount
+				nameToTarget[name] = target
+				tinsert(sorttbl, name)
+			else
+				nameToValue[name] = nameToValue[name] + amount
+			end
 		end
 	end
 	if merged and u.pets then
@@ -59,15 +57,33 @@ function view:Update(merged)
 				total = total + pu[etype].total
 				for target, amount in pairs(pu[etype].target) do
 					local name = format("%s%s", pu.name, target)
-					nameToValue[name] = amount
-					nameToUnit[name] = pu
-					nameToTarget[name] = target
-					tinsert(sorttbl, name)
+					if not nameToValue[name] then
+						nameToValue[name] = amount
+						nameToPetName[name] = pu.name
+						nameToTarget[name] = target
+						tinsert(sorttbl, name)
+					else
+						nameToValue[name] = nameToValue[name] + amount
+					end
 				end
 			end
 		end
 	end
 	table.sort(sorttbl, sorter)
+	return total
+end
+
+function view:Update(merged)
+	local set = addon:GetSet(addon.nav.set)
+	if not set then backAction() return end
+	local u = set.unit[addon.nav.unit]
+	if not u then backAction() return end
+	local etype = addon.types[addon.nav.type].id
+	local etype2 = addon.types[addon.nav.type].id2
+	
+	-- compile and sort information table
+	local total = updateTables(set, u, etype, merged)
+	total = total + updateTables(set, u, etype2, merged)
 	
 	-- display
 	self.first, self.last = addon:GetArea(self.first, #sorttbl)
@@ -76,14 +92,14 @@ function view:Update(merged)
 	local c = addon.color[u.class]
 	local maxvalue = nameToValue[sorttbl[1]]
 	for i = self.first, self.last do
-		local pu = nameToUnit[sorttbl[i]]
+		local petName = nameToPetName[sorttbl[i]]
 		local value = nameToValue[sorttbl[i]]
 		local target = nameToTarget[sorttbl[i]]
 		
 		local line = addon.window:GetLine(i-self.first)
 		line:SetValues(value, maxvalue)
-		if pu then
-			line:SetLeftText("%i. %s <%s>", i, target, pu.name)
+		if petName then
+			line:SetLeftText("%i. %s <%s>", i, target, petName)
 		else
 			line:SetLeftText("%i. %s", i, target)
 		end
@@ -96,6 +112,39 @@ function view:Update(merged)
 	
 	sorttbl = wipe(sorttbl)
 	nameToValue = wipe(nameToValue)
-	nameToUnit = wipe(nameToUnit)
+	nameToPetName = wipe(nameToPetName)
+	nameToTarget = wipe(nameToTarget)
+end
+
+function view:Report(merged, num_lines)
+	local set = addon:GetSet(addon.nav.set)
+	local u = set.unit[addon.nav.unit]
+	local etype = addon.types[addon.nav.type].id
+	local etype2 = addon.types[addon.nav.type].id2
+	
+	-- compile and sort information table
+	local total = updateTables(set, u, etype, merged)
+	total = total + updateTables(set, u, etype2, merged)
+	if #sorttbl == 0 then return end
+	if #sorttbl < num_lines then
+		num_lines = #sorttbl
+	end
+	
+	-- display
+	addon:PrintHeaderLine(set)
+	for i = 1, num_lines do
+		local petName = nameToPetName[sorttbl[i]]
+		local value = nameToValue[sorttbl[i]]
+		local target = nameToTarget[sorttbl[i]]
+		
+		if petName then
+			target = format("%s <%s>", target, petName)
+		end
+		addon:PrintLine("%i. %s %i (%02.1f%%)", i, target, value, value/total*100)
+	end
+	
+	sorttbl = wipe(sorttbl)
+	nameToValue = wipe(nameToValue)
+	nameToPetName = wipe(nameToPetName)
 	nameToTarget = wipe(nameToTarget)
 end

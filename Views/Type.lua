@@ -46,17 +46,25 @@ function view:Update()
 				t = addon.types[id]
 			end
 		end
+
+		local amount = set[t.id] and set[t.id].total or 0
+		if t.id2 and set[t.id2] then
+			amount = amount + set[t.id2].total
+		end
+		for name, u in pairs(set.unit) do
+			if u[t.id] then
+				amount = amount + u[t.id].total
+			end
+			if t.id2 and u[t.id2] then
+				amount = amount + u[t.id2].total
+			end
+		end
+		
 		local line = addon.window:GetLine(i-self.first)
 		local c = t.c
 		
 		line:SetValues(1, 1)
 		line:SetLeftText(" %s", t.name)
-		local amount = set[t.id] and set[t.id].total or 0
-		for name, u in pairs(set.unit) do
-			if u[t.id] then
-				amount = amount + u[t.id].total
-			end
-		end
 		if amount ~= 0 then
 			line:SetRightText(amount)
 		else

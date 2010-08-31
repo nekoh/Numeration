@@ -85,9 +85,9 @@ function view:Update()
 	local set = addon:GetSet(addon.nav.set)
 	if not set then return end
 	local dl = set.deathlog
-	if not dl then return end
+	if not dl then return backAction() end
 	local dld = dl[addon.nav.id]
-	if not dld then return end
+	if not dld then return backAction() end
 	
 	-- display
 	self.first, self.last = addon:GetArea(self.first, #dld)
