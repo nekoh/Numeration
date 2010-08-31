@@ -4,7 +4,12 @@
 ## Notes: yet another Damage Meter addon
 ## Author: nekoh
 ## Version: 1.0
+## OptionalDeps: LibDBIcon-1.0
 ## SavedVariablesPerCharacter: NumerationCharDB, NumerationCharOptions
+
+Libs\LibStub\LibStub.lua
+Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
+Libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
 
 Core.lua
 Window.lua

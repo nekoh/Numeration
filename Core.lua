@@ -78,7 +78,7 @@ addon.types = {
 		c = {.09, .61, .55},
 	},
 	{
-		name = "Mana Gains",
+		name = "Power Gains",
 		id = "mg",
 		c = {48/255, 113/255, 191/255},
 	},
@@ -217,14 +217,25 @@ local newSet = function()
 end
 local current
 
+local ldb = LibStub("LibDataBroker-1.1"):NewDataObject("Numeration", {
+	type = "data source",
+	text = "Numeration",
+	icon = [[Interface\Icons\Ability_Warrior_WeaponMastery]],
+})
+local icon = LibStub("LibDBIcon-1.0")
+
 addon.events:RegisterEvent("ADDON_LOADED")
 function addon:ADDON_LOADED(event, addon)
 	if addon ~= addonname then return end
 	self.events:UnregisterEvent("ADDON_LOADED")
 	
 	self:InitOptions()
+	icon:Register("Numeration", ldb, NumerationCharOptions.minimap)
 	self.window:OnInitialize()
-
+	if NumerationCharOptions.forcehide then
+		self.window:Hide()
+	end
+	
 	if not NumerationCharDB then
 		self:Reset()
 	end
@@ -253,6 +264,11 @@ function addon:InitOptions()
 	if NumerationCharOptions.deathlog == nil then
 		NumerationCharOptions.deathlog = true
 	end
+	if not NumerationCharOptions.minimap then
+		NumerationCharOptions.minimap = {
+			hide = false,
+		}
+	end
 	if not NumerationCharOptions.nav then
 		NumerationCharOptions.nav = {
 			view = 'Units',
@@ -260,7 +276,38 @@ function addon:InitOptions()
 			type = 1,
 		}
 	end
-	addon.nav = NumerationCharOptions.nav
+	self.nav = NumerationCharOptions.nav
+end
+
+function ldb:OnTooltipShow()
+    GameTooltip:AddLine("Numeration", 1, .8, 0)
+    GameTooltip:AddLine("Left-Click to toggle window visibility.")
+    GameTooltip:AddLine("Shift + Left-Click to reset data.")
+end
+
+function ldb:OnClick(button)
+	if button == "LeftButton" then
+		if IsShiftKeyDown() then
+			addon.window:ShowResetWindow()
+		else
+			NumerationCharOptions.forcehide = not NumerationCharOptions.forcehide
+			if NumerationCharOptions.forcehide then
+				addon.window:Hide()
+			else
+				addon.window:Show()
+				addon:RefreshDisplay()
+			end
+		end
+	end
+end
+
+function addon:MinimapIconShow(show)
+	NumerationCharOptions.minimap.hide = not show
+	if show then
+		icon:Show("Numeration")
+	else
+		icon:Hide("Numeration")
+	end
 end
 
 function addon:SetOption(option, value)
@@ -287,7 +334,7 @@ function addon:Reset()
 	if self.nav.set and self.nav.set ~= "total" and self.nav.set ~= "current" then
 		self.nav.set = "current"
 	end
-	addon:RefreshDisplay()
+	self:RefreshDisplay()
 	collectgarbage("collect")
 end
 
@@ -300,8 +347,14 @@ updateTimer:SetScript("OnUpdate", function(self, elapsed)
 	
 	if not addon.nav.set then return end
 	
+	if current.changed then
+		ldb.text = addon.views["Units"]:GetXps(current, UnitName("player"), "dd", NumerationCharOptions.petsmerged)
+	end
+	
 	local set = addon:GetSet(addon.nav.set)
-	if not set or not set.changed then return end
+	if not set or not set.changed then
+		return
+	end
 	set.changed = nil
 	
 	addon:RefreshDisplay(true)
@@ -315,14 +368,20 @@ function updateTimer:Refresh()
 end
 
 function addon:RefreshDisplay(update)
-	self.window:Clear()
-	
-	if not update then
-		self.views[self.nav.view]:Init()
-		local segment = self.nav.set == 'total' and "O" or self.nav.set == 'current' and "C" or self.nav.set
-		self.window:UpdateSegment(segment)
+	if self.window:IsShown() then
+		self.window:Clear()
+		
+		if not update then
+			self.views[self.nav.view]:Init()
+			local segment = self.nav.set == 'total' and "O" or self.nav.set == 'current' and "C" or self.nav.set
+			self.window:UpdateSegment(segment)
+		end
+		self.views[self.nav.view]:Update(NumerationCharOptions.petsmerged)
 	end
-	self.views[self.nav.view]:Update(NumerationCharOptions.petsmerged)
+	if not update then
+		ldb.text = self.views["Units"]:GetXps(current, UnitName("player"), "dd", NumerationCharOptions.petsmerged)
+	end
+	
 	updateTimer:Refresh()
 end
 
@@ -336,11 +395,11 @@ function addon:Report(lines, chatType, channel)
 			return
 		end
 	end
-	local view = addon.views[addon.nav.view]
+	local view = self.views[self.nav.view]
 	if view.Report then
 		view:Report(NumerationCharOptions.petsmerged, lines)
 	else
-		print("Report is not supported by '", addon.nav.view, "'-view")
+		print("Report is not supported by '", self.nav.view, "'-view")
 	end
 end
 
@@ -478,10 +537,10 @@ do
 		end
 	end
 	function addon:UpdateGUIDS()
-		addon.guidToName = wipe(addon.guidToName)
-		addon.guidToClass = wipe(addon.guidToClass)
+		self.guidToName = wipe(self.guidToName)
+		self.guidToClass = wipe(self.guidToClass)
 		for pid, uid in pairs(summonguids) do
-			addon.guidToClass[pid] = uid
+			self.guidToClass[pid] = uid
 		end
 		
 		local num = GetNumRaidMembers()
@@ -501,8 +560,8 @@ do
 		
 		-- remove summons from guid list, if owner is gone
 		for pid, uid in pairs(summonguids) do
-			if not addon.guidToClass[uid] then
-				addon.guidToClass[pid] = nil
+			if not self.guidToClass[uid] then
+				self.guidToClass[pid] = nil
 				summonguids[pid] = nil
 			end
 		end
@@ -538,8 +597,10 @@ function addon:ZONE_CHANGED_NEW_AREA(force)
 			self.events:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 			
 			updateTimer:Activate()
-			self:RefreshDisplay()
-			self.window:Show()
+			if not NumerationCharOptions.forcehide then
+				self:RefreshDisplay()
+				self.window:Show()
+			end
 		else
 			self.events:UnregisterEvent("PLAYER_ENTERING_WORLD")
 			self.events:UnregisterEvent("PARTY_MEMBERS_CHANGED")
@@ -552,8 +613,10 @@ function addon:ZONE_CHANGED_NEW_AREA(force)
 			self.events:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 			updateTimer:Hide()
 			if zoneType == "none" then
-				self:RefreshDisplay()
-				self.window:Show()
+				if not NumerationCharOptions.forcehide then
+					self:RefreshDisplay()
+					self.window:Show()
+				end
 			else
 				self.window:Hide()
 			end

@@ -102,6 +102,7 @@ function window:OnInitialize()
 				{ text = "Keep Only Boss Segments", arg1 = "keeponlybosses", func = optionFunction, checked = function() return addon:GetOption("keeponlybosses") end, keepShownOnClick = true },
 				{ text = "Record Deathlog", arg1 = "deathlog", func = optionFunction, checked = function() return addon:GetOption("deathlog") end, keepShownOnClick = true },
 				{ text = "Record Only In Instances", arg1 = "onlyinstance", func = optionFunction, checked = function() return addon:GetOption("onlyinstance") end, keepShownOnClick = true },
+				{ text = "Show Minimap Icon", func = function(f, a1, a2, checked) addon:MinimapIconShow(checked) end, checked = function() return not NumerationCharOptions.minimap.hide end, keepShownOnClick = true },
 			},
 		},
 		{ text = "", notClickable = true },

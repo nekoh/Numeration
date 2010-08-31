@@ -541,7 +541,7 @@ end
 
 
 function collect.SPELL_ENERGIZE(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool, amount, powerType)
-	if addon.guidToClass[dstGUID] and powerType == 0 then
+	if addon.guidToClass[dstGUID] then
 		EVENT('mg', dstGUID, dstName, srcName, spellId, amount)
 	end
 end

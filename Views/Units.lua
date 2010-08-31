@@ -125,6 +125,18 @@ function view:Update(merged)
 	nameToTime = wipe(nameToTime)
 end
 
+function view:GetXps(set, name, etype, merged)
+	calcValueTime(set, name, etype, merged)
+	local value, time = nameToValue[name], nameToTime[name]
+	nameToValue[name], nameToTime[name] = nil, nil
+	if not value then
+		return "n/a"
+	elseif time == 0 then
+		return tostring(value)
+	end
+	return format("%.1f", value/time)
+end
+
 function view:Report(merged, num_lines)
 	local set = addon:GetSet(addon.nav.set)
 	if not set then return end
