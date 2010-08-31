@@ -1,15 +1,4 @@
 local addonname, addon = ...
---------------------------------------------------------------------------------
--- TODO ------------------------------------------------------------------------
--- # report deathlog
--- # report window
--- oh %
--- arenas
--- * make bottons on window more appealing
--- ? spell details [crit,miss]
--- ? differentiate between over time- and direct- spells
--- /run SetCVar('uiScale', 768 / 1050)
---------------------------------------------------------------------------------
 addon.events = CreateFrame("Frame")
 addon.events:SetScript("OnEvent", function(self, event, ...)
 	addon[event](addon, event, ...)
@@ -229,14 +218,14 @@ end
 local current
 
 addon.events:RegisterEvent("ADDON_LOADED")
-function addon:ADDON_LOADED(event, loaded_addon)
-	if loaded_addon ~= addonname then return end
+function addon:ADDON_LOADED(event, addon)
+	if addon ~= addonname then return end
 	self.events:UnregisterEvent("ADDON_LOADED")
 	
 	self:InitOptions()
 	self.window:OnInitialize()
 
-	if not nMeterCharDB then
+	if not NumerationCharDB then
 		self:Reset()
 	end
 	current = self:GetSet(1) or newSet()
@@ -249,33 +238,33 @@ function addon:ADDON_LOADED(event, loaded_addon)
 end
 
 function addon:InitOptions()
-	if not nMeterCharOptions then
-		nMeterCharOptions = {}
+	if not NumerationCharOptions then
+		NumerationCharOptions = {}
 	end
-	if nMeterCharOptions.keeponlybosses == nil then
-		nMeterCharOptions.keeponlybosses = true
+	if NumerationCharOptions.keeponlybosses == nil then
+		NumerationCharOptions.keeponlybosses = true
 	end
-	if nMeterCharOptions.petsmerged == nil then
-		nMeterCharOptions.petsmerged = true
+	if NumerationCharOptions.petsmerged == nil then
+		NumerationCharOptions.petsmerged = true
 	end
-	if nMeterCharOptions.onlyinstance == nil then
-		nMeterCharOptions.onlyinstance = true
+	if NumerationCharOptions.onlyinstance == nil then
+		NumerationCharOptions.onlyinstance = true
 	end
-	if nMeterCharOptions.deathlog == nil then
-		nMeterCharOptions.deathlog = true
+	if NumerationCharOptions.deathlog == nil then
+		NumerationCharOptions.deathlog = true
 	end
-	if not nMeterCharOptions.nav then
-		nMeterCharOptions.nav = {
+	if not NumerationCharOptions.nav then
+		NumerationCharOptions.nav = {
 			view = 'Units',
 			set = 'current',
 			type = 1,
 		}
 	end
-	addon.nav = nMeterCharOptions.nav
+	addon.nav = NumerationCharOptions.nav
 end
 
 function addon:SetOption(option, value)
-	nMeterCharOptions[option] = value
+	NumerationCharOptions[option] = value
 	if option == "onlyinstance" then
 		self:ZONE_CHANGED_NEW_AREA(true)
 	elseif option == "petsmerged" then
@@ -284,16 +273,16 @@ function addon:SetOption(option, value)
 end
 
 function addon:GetOption(option)
-	return nMeterCharOptions[option]
+	return NumerationCharOptions[option]
 end
 
 function addon:Reset()
-	local lastZone = nMeterCharDB and nMeterCharDB.zone
-	nMeterCharDB = {
+	local lastZone = NumerationCharDB and NumerationCharDB.zone
+	NumerationCharDB = {
 		[0] = newSet(),
 		zone = lastZone,
 	}
-	nMeterCharDB[0].name = "Overall"
+	NumerationCharDB[0].name = "Overall"
 	current = newSet()
 	if self.nav.set and self.nav.set ~= "total" and self.nav.set ~= "current" then
 		self.nav.set = "current"
@@ -333,7 +322,7 @@ function addon:RefreshDisplay(update)
 		local segment = self.nav.set == 'total' and "O" or self.nav.set == 'current' and "C" or self.nav.set
 		self.window:UpdateSegment(segment)
 	end
-	self.views[self.nav.view]:Update(nMeterCharOptions.petsmerged)
+	self.views[self.nav.view]:Update(NumerationCharOptions.petsmerged)
 	updateTimer:Refresh()
 end
 
@@ -349,7 +338,7 @@ function addon:Report(lines, chatType, channel)
 	end
 	local view = addon.views[addon.nav.view]
 	if view.Report then
-		view:Report(nMeterCharOptions.petsmerged, lines)
+		view:Report(NumerationCharOptions.petsmerged, lines)
 	else
 		print("Report is not supported by '", addon.nav.view, "'-view")
 	end
@@ -406,11 +395,11 @@ function addon:GetSet(id)
 	elseif id == 'total' then
 		id = 0
 	end
-	return nMeterCharDB[id]
+	return NumerationCharDB[id]
 end
 
 function addon:GetSets()
-	return nMeterCharDB[0], current.active and current
+	return NumerationCharDB[0], current.active and current
 end
 
 function addon:GetDuration(set)
@@ -530,10 +519,10 @@ function addon:ZONE_CHANGED_NEW_AREA(force)
 	if force == true or zoneType ~= self.zoneType then
 		self.zoneType = zoneType
 		
-		if not nMeterCharOptions.onlyinstance or zoneType == "party" or zoneType == "raid" then
+		if not NumerationCharOptions.onlyinstance or zoneType == "party" or zoneType == "raid" then
 			local curZone = GetRealZoneText()
-			if curZone ~= nMeterCharDB.zone then
-				nMeterCharDB.zone = curZone
+			if curZone ~= NumerationCharDB.zone then
+				NumerationCharDB.zone = curZone
 				addon.window:ShowResetWindow()
 			end
 			self:UpdateGUIDS()
@@ -619,10 +608,10 @@ end
 function addon:LeaveCombatEvent()
 	if current.active then
 		current.active = nil
-		if ((current.now - current.start) < s.mincombatlength) or (nMeterCharOptions.keeponlybosses and not current.boss) then
+		if ((current.now - current.start) < s.mincombatlength) or (NumerationCharOptions.keeponlybosses and not current.boss) then
 			return
 		end
-		tinsert(nMeterCharDB, 1, current)
+		tinsert(NumerationCharDB, 1, current)
 		if type(self.nav.set) == "number" then
 			self.nav.set = self.nav.set + 1
 		end

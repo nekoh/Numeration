@@ -39,11 +39,11 @@ function view:Update()
 	setLine(0, "total", " Overall Data")
 	setLine(1, "current", " Current Fight")
 
-	self.first, self.last = addon:GetArea(self.first, #nMeterCharDB+2)
+	self.first, self.last = addon:GetArea(self.first, #NumerationCharDB+2)
 	if not self.last then return end
 
 	for i = self.first, self.last-2 do
-		t = nMeterCharDB[i]
+		t = NumerationCharDB[i]
 		setLine(i-self.first+2, i)
 	end
 

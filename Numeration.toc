@@ -1,10 +1,10 @@
 ## Interface: 30300
-## Title: |cff4080d9n|rMeter
+## Title: Numeration
 
-## Notes: Meter for various data
+## Notes: yet another Damage Meter addon
 ## Author: nekoh
-## Version: 3.3.0
-## SavedVariablesPerCharacter: nMeterCharDB, nMeterCharOptions
+## Version: 1.0
+## SavedVariablesPerCharacter: NumerationCharDB, NumerationCharOptions
 
 Core.lua
 Window.lua

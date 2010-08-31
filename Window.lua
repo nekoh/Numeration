@@ -1,5 +1,5 @@
 local addon = select(2, ...)
-local window = CreateFrame("Frame", nil, UIParent)
+local window = CreateFrame("Frame", "NumerationFrame", UIParent)
 addon.window = window
 
 local lines = {}
@@ -44,10 +44,10 @@ function window:OnInitialize()
 	self:SetHeight(3+s.titleheight+s.maxlines*(s.lineheight+s.linegap))
 
 	self:SetClampedToScreen(true)
-    self:EnableMouse(true)
+	self:EnableMouse(true)
 	self:EnableMouseWheel(true)
-    self:SetMovable(true)
-    self:RegisterForDrag("LeftButton")
+	self:SetMovable(true)
+	self:RegisterForDrag("LeftButton")
 	self:SetScript("OnDragStart", function() if IsAltKeyDown() then self:StartMoving() end end)
 	self:SetScript("OnDragStop", function()
 		self:StopMovingOrSizing()
@@ -76,7 +76,7 @@ function window:OnInitialize()
 		self:SetPoint("CENTER", UIParent, "CENTER", x*uis/s, y*uis/s)
 	end
 
-	local dropdown = CreateFrame("Frame", "nMeterMenuFrame", nil, "UIDropDownMenuTemplate")
+	local dropdown = CreateFrame("Frame", "NumerationMenuFrame", nil, "UIDropDownMenuTemplate")
 	local optionFunction = function(f, id, _, checked)
 		addon:SetOption(id, checked)
 	end
@@ -85,8 +85,8 @@ function window:OnInitialize()
 		CloseDropDownMenus()
 	end
 	local menuTable = {
-		{ text = "Numeration", isTitle = true, notCheckable = 1, notClickable = true },
-		{ text = "Report", notCheckable = 1, hasArrow = true,
+		{ text = "Numeration", isTitle = true, notCheckable = true, notClickable = true },
+		{ text = "Report", notCheckable = true, hasArrow = true,
 			menuList = {
 				{ text = 'Say', arg1 = "SAY", func = reportFunction, notCheckable = 1 },
 				{ text = 'Raid', arg1 = "RAID", func = reportFunction, notCheckable = 1 },
@@ -96,7 +96,7 @@ function window:OnInitialize()
 				{ text = 'Channel  ', notCheckable = 1, keepShownOnClick = true, hasArrow = true, menuList = {} }
 			},
 		},
-		{ text = "Options", notCheckable = 1, hasArrow = true,
+		{ text = "Options", notCheckable = true, hasArrow = true,
 			menuList = {
 				{ text = "Merge Pets w/ Owners", arg1 = "petsmerged", func = optionFunction, checked = function() return addon:GetOption("petsmerged") end, keepShownOnClick = true },
 				{ text = "Keep Only Boss Segments", arg1 = "keeponlybosses", func = optionFunction, checked = function() return addon:GetOption("keeponlybosses") end, keepShownOnClick = true },
@@ -105,7 +105,7 @@ function window:OnInitialize()
 			},
 		},
 		{ text = "", notClickable = true },
-		{ text = "Reset", func = function() self:ShowResetWindow() end, notCheckable = 1 },
+		{ text = "Reset", func = function() self:ShowResetWindow() end, notCheckable = true },
 	}
 
 	local scroll = self:CreateTexture(nil, "ARTWORK")
@@ -339,7 +339,7 @@ function window:ShowResetWindow()
 		reset.titletext = reset:CreateFontString(nil, "ARTWORK")
 		reset.titletext:SetFont(s.titlefont, s.titlefontsize, "OUTLINE")
 		reset.titletext:SetTextColor(s.titlefontcolor[1], s.titlefontcolor[2], s.titlefontcolor[3], 1)
-		reset.titletext:SetText("nMeter: Reset Data?")
+		reset.titletext:SetText("Numeration: Reset Data?")
 		reset.titletext:SetPoint("TOPLEFT", 5, -2)
 		
 		reset.yes = CreateFrame("Button", nil, reset)
