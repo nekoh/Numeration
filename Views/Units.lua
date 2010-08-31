@@ -28,6 +28,7 @@ local nameToValue = {}
 local nameToTime = {}
 local calcValueTime = function(set, name, etype, merged)
 	local u = set.unit[name]
+	if not u then return false end
 	local value = u[etype] and u[etype].total or 0
 	local time = u[etype] and u[etype].time or 0
 	if merged and u.pets then
