@@ -434,7 +434,7 @@ function addon:GetUnit(set, id)
 			}
 			set.unit[key] = p
 		end
-		return p, true
+		return p
 	end
 end
 
