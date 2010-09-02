@@ -7,11 +7,10 @@ local	UnitHealth, UnitHealthMax =
 
 local spellName = addon.spellName
 local deathlogHealFilter = {
-	[spellName[50475]] = true, -- Blood Presence
-	[spellName[52042]] = true, -- Healing Stream Totem
-	[spellName[20267]] = true, -- Judgement of Light
-	[spellName[23880]] = true, -- Bloodthirst
-	[spellName[15290]] = true, -- Vampiric Embrace
+	[spellName[5394]] = true, -- Healing Stream Totem
+	[spellName[57774]] = true, -- Judgement of Light
+	[spellName[23881]] = true, -- Bloodthirst
+	[spellName[15286]] = true, -- Vampiric Embrace
 }
 local deathlogTrackBuffs = {
 	--DEATHKNIGHT
@@ -33,7 +32,7 @@ local deathlogTrackBuffs = {
 	[spellName[1022]] = true, -- Hand of Protection
 	[spellName[1044]] = true, -- Hand of Freedom
 	[spellName[1038]] = true, -- Hand of Salvation
-	[spellName[19752]] = true, -- Divine Intervention
+--	[spellName[19752]] = true, -- Divine Intervention
 	--PRIEST
 	[spellName[47585]] = true, -- Dispersion
 	[spellName[33206]] = true, -- Pain Suppression
