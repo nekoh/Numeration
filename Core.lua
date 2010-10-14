@@ -579,7 +579,7 @@ function addon:EnterCombatEvent(timestamp, guid, name)
 	
 	current.now = timestamp
 	if not current.boss then
-		local mobid = bossIds[tonumber(guid:sub(9, 12), 16)]
+		local mobid = bossIds[tonumber(guid:sub(7, 10), 16)]
 		if mobid then
 			current.name = mobid == true and name or mobid
 			current.boss = true
