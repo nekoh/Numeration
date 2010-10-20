@@ -221,80 +221,30 @@ local AbsorbSpellDuration = {
 	[48707] = 5, -- Anti-Magic Shell (DK) Rank 1 -- Does not currently seem to show tracable combat log events. It shows energizes which do not reveal the amount of damage absorbed
 	[51052] = 10, -- Anti-Magic Zone (DK)( Rank 1 (Correct spellID?)
 		-- Does DK Spell Deflection show absorbs in the CL?
-	[51271] = 20, -- Unbreakable Armor (DK)
+--	[51271] = 20, -- Unbreakable Armor (DK) TODO CATA is now Pillar of Frost
+	[77535] = 10, -- Blood Shield (DK)
 	-- Druid
 	[62606] = 10, -- Savage Defense proc. (Druid) Tooltip of the original spell doesn't clearly state that this is an absorb, but the buff does.
 	-- Mage
-	[11426] = 60, -- Ice Barrier (Mage) Rank 1
-	[13031] = 60,
-	[13032] = 60,
-	[13033] = 60,
-	[27134] = 60,
-	[33405] = 60,
-	[43038] = 60,
-	[43039] = 60, -- Rank 8
-	[6143] = 30, -- Frost Ward (Mage) Rank 1
-	[8461] = 30, 
-	[8462] = 30,  
-	[10177] = 30,  
-	[28609] = 30,
-	[32796] = 30,
-	[43012] = 30, -- Rank 7
-	[1463] = 60, --  Mana shield (Mage) Rank 1
-	[8494] = 60,
-	[8495] = 60,
-	[10191] = 60,
-	[10192] = 60,
-	[10193] = 60,
-	[27131] = 60,
-	[43019] = 60,
-	[43020] = 60, -- Rank 9
-	[543] = 30 , -- Fire Ward (Mage) Rank 1
-	[8457] = 30,
-	[8458] = 30,
-	[10223] = 30,
-	[10225] = 30,
-	[27128] = 30,
-	[43010] = 30, -- Rank 7
+	[11426] = 60, -- Ice Barrier (Mage)
+	[1463] = 60, --  Mana shield (Mage)
+	[543] = 30 , -- Fire Ward (Mage) TODO CATA is now Mage Ward
 	-- Paladin
-	[58597] = 6, -- Sacred Shield (Paladin) proc (Fixed, thanks to Julith)
+	[86273] = 6, -- TODO CATA new Illuminated Healing
 	-- Priest
-	[17] = 30, -- Power Word: Shield (Priest) Rank 1
-	[592] = 30,
-	[600] = 30,
-	[3747] = 30,
-	[6065] = 30,
-	[6066] = 30,
-	[10898] = 30,
-	[10899] = 30,
-	[10900] = 30,
-	[10901] = 30,
-	[25217] = 30,
-	[25218] = 30,
-	[48065] = 30,
-	[48066] = 30, -- Rank 14
-	[47509] = 12, -- Divine Aegis (Priest) Rank 1
+	[17] = 30, -- Power Word: Shield (Priest)
+	[47509] = 12, -- Divine Aegis (Priest)
 	[47511] = 12,
-	[47515] = 12, -- Divine Aegis (Priest) Rank 3 (Some of these are not actual buff spellIDs)
-	[47753] = 12, -- Divine Aegis (Priest) Rank 1
-	[54704] = 12, -- Divine Aegis (Priest) Rank 1
+	[47515] = 12, -- Divine Aegis (Priest) (Some of these are not actual buff spellIDs)
+	[47753] = 12, -- Divine Aegis (Priest)
+	[54704] = 12, -- Divine Aegis (Priest)
 	[47788] = 10, -- Guardian Spirit  (Priest) (50 nominal absorb, this may not show in the CL)
+	[62618] = 25, -- Power Word: Barrier TODO CATA new
+	[81781] = 25, -- Power Word: Barrier TODO CATA new
 	-- Warlock
-	[7812] = 30, -- Sacrifice (warlock) Rank 1
-	[19438] = 30,
-	[19440] = 30,
-	[19441] = 30,
-	[19442] = 30,
-	[19443] = 30,
-	[27273] = 30,
-	[47985] = 30,
-	[47986] = 30, -- rank 9
-	[6229] = 30, -- Shadow Ward (warlock) Rank 1
-	[11739] = 30,
-	[11740] = 30,
-	[28610] = 30,
-	[47890] = 30,
-	[47891] = 30, -- Rank 6
+	[7812] = 30, -- Sacrifice (warlock)
+	[6229] = 30, -- Shadow Ward (warlock)
+	[91711] = 30, -- Nether Ward
 	-- Consumables
 	[29674] = 86400, -- Lesser Ward of Shielding
 	[29719] = 86400, -- Greater Ward of Shielding (these have infinite duration, set for a day here :P)
@@ -309,7 +259,6 @@ local AbsorbSpellDuration = {
 	[7239] = 120, -- Frost
 	[7242] = 120, -- Shadow Protection Potion
 	[7245] = 120, -- Holy
-	[6052] = 120, -- Nature Protection Potion
 	[53915] = 120, -- Mighty Shadow Protection Potion
 	[53914] = 120, -- Mighty Nature Protection Potion
 	[53913] = 120, -- Mighty Frost Protection Potion
@@ -336,7 +285,7 @@ local AbsorbSpellDuration = {
 	[31002] = 300, -- Pendant of the Null Rune
 	[30999] = 300, -- Pendant of Withering
 	[30994] = 300, -- Pendant of Thawing
-	[31000] = 300, -- 
+--	[31000] = 300, -- TODO duplicate
 	[23506]= 20, -- Arena Grand Master Usage (Aura of Protection)
 	[12561] = 60, -- Goblin Construction Helmet usage
 	[31771] = 20, -- Runed Fungalcap usage
@@ -585,11 +534,11 @@ function collect:RemoveUnneededEvents()
 		collect.DAMAGE_SHIELD_MISSED = nil
 		collect.SWING_MISSED = nil
 
-		collect.SPELL_AURA_APPLIED_DOSE = nil
 		collect.SPELL_AURA_APPLIED = nil
 		collect.SPELL_AURA_REFRESH = nil
-		collect.SPELL_AURA_REMOVED_DOSE = nil
 		collect.SPELL_AURA_REMOVED = nil
+		collect.SPELL_AURA_APPLIED_DOSE = nil
+		collect.SPELL_AURA_REMOVED_DOSE = nil
 	end
 
 	if not addon.ids["hd"] and not addon.ids["oh"] and not addon.ids["deathlog"] then
