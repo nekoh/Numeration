@@ -215,6 +215,29 @@ function addon:GUIDsUpdated()
 	end
 end
 
+---- IMPORTANT ABSORBS CATA CHANGES
+---- WORK
+-- 17 Power Word: Shield
+-- 47753 Divine Aegis
+-- 86273 Illuminated Healing
+-- 88063 Guarded by the Light
+---- WORK DIFFERENT
+-- 48707 Anti-Magic Shell
+---- NOT WORK
+-- 543 Mage Ward
+-- 6229 Shadow Ward
+-- 47788 Guardian Spirit
+-- 62606 Savage Defense
+-- 64411 Blessing of Ancient Kings (self)
+-- 64413 Protection of Ancient Kings
+
+local NotGuessedAbsorb = {
+	[17] = 1, -- Power Word: Shield
+	[47753] = 1, -- Divine Aegis
+	[86273] = 1, -- Illuminated Healing
+	[88063] = 1, -- Guarded by the Light
+	[48707] = 2, -- Anti-Magic Shell
+}
 -- property of RecountGuessedAbsorbs by Elsia
 local AbsorbSpellDuration = {
 	-- Death Knight
@@ -231,6 +254,7 @@ local AbsorbSpellDuration = {
 	[543] = 30 , -- Fire Ward (Mage) TODO CATA is now Mage Ward
 	-- Paladin
 	[86273] = 6, -- TODO CATA new Illuminated Healing
+	[88063] = 6, -- Guarded by the Light
 	-- Priest
 	[17] = 30, -- Power Word: Shield (Priest)
 	[47509] = 12, -- Divine Aegis (Priest)
@@ -239,8 +263,8 @@ local AbsorbSpellDuration = {
 	[47753] = 12, -- Divine Aegis (Priest)
 	[54704] = 12, -- Divine Aegis (Priest)
 	[47788] = 10, -- Guardian Spirit  (Priest) (50 nominal absorb, this may not show in the CL)
-	[62618] = 25, -- Power Word: Barrier TODO CATA new
-	[81781] = 25, -- Power Word: Barrier TODO CATA new
+--	[62618] = 25, -- Power Word: Barrier TODO CATA new; 4.0.3a is now damage reduction
+--	[81781] = 25, -- Power Word: Barrier TODO CATA new; 4.0.3a is now damage reduction
 	-- Warlock
 	[7812] = 30, -- Sacrifice (warlock)
 	[6229] = 30, -- Shadow Ward (warlock)
@@ -381,28 +405,6 @@ local function EVENT(etype, playerID, targetName, spellID, amount, timestamp)
 end
 
 local shields = {}
-local function findAbsorber(timestamp, dstGUID, dstName, amount)
-	if not shields[dstGUID] then return end
-	local mintime = 999
-	local shielderId, shieldSpellId
-	for shield_id, spells in pairs(shields[dstGUID]) do
-		for shield_src, ts in pairs(spells) do
-			local time_diff = ts - timestamp
-			if time_diff < -0.1 then
-				spells[shield_src] = nil
-			elseif time_diff < mintime then
-				mintime = time_diff
-				shielderId = shield_src
-				shieldSpellId = shield_id
-			end
-		end
-	end
-	
-	if shielderId and addon.guidToClass[shielderId] then
-		EVENT("ga", shielderId, dstName, shieldSpellId, amount)
-	end
-end
-
 -- COMBAT LOG EVENTS --
 function collect.SPELL_DAMAGE(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool, amount, overkill, school, resisted, blocked, absorbed, critical, glancing, crushing)
 	local srcFriend = addon.guidToClass[srcGUID]
@@ -414,9 +416,6 @@ function collect.SPELL_DAMAGE(timestamp, srcGUID, srcName, srcFlags, dstGUID, ds
 			addon:EnterCombatEvent(timestamp, srcGUID, srcName)
 		end
 		EVENT("dt", dstGUID, srcName, spellId, amount)
-		if addon.ids["ga"] and absorbed then
-			findAbsorber(timestamp, dstGUID, dstName, absorbed)
-		end
 		if addon.ids["deathlog"] then
 			addDeathlogEvent(dstGUID, dstName, fmtDamage, timestamp, srcName, spellId, spellSchool, amount, overkill, resisted, blocked, absorbed, critical, glancing, crushing)
 		end
@@ -441,9 +440,6 @@ function collect.SPELL_MISSED(timestamp, srcGUID, srcName, srcFlags, dstGUID, ds
 	if addon.guidToClass[dstGUID] then
 		if addon.ids["deathlog"] then
 			addDeathlogEvent(dstGUID, dstName, fmtMiss, timestamp, srcName, spellId, spellSchool, missType, amountMissed)
-		end
-		if addon.ids["ga"] and amountMissed and missType == "ABSORB" then
-			findAbsorber(timestamp, dstGUID, dstName, amountMissed)
 		end
 	end
 end
@@ -488,30 +484,73 @@ function collect.SPELL_ENERGIZE(timestamp, srcGUID, srcName, srcFlags, dstGUID, 
 end
 collect.SPELL_PERIODIC_ENERGIZE = collect.SPELL_ENERGIZE
 
+local debugAbsorb = function(srcName, dstName, spellId, spellName, auraType, amount1, amount2, amount3)
+	if amount1 or AbsorbSpellDuration[spellId] then
+		NumerationCharDB.test = NumerationCharDB.test or {}
+		NumerationCharDB.test[spellName] = NumerationCharDB.test[spellName] or {}
+		NumerationCharDB.test[spellName].id = spellId
+		NumerationCharDB.test[spellName].auraType = auraType
+		NumerationCharDB.test[spellName].inDB = not not AbsorbSpellDuration[spellId]
+		NumerationCharDB.test[spellName].src = NumerationCharDB.test[spellName].src or {}
+		NumerationCharDB.test[spellName].src[srcName or 'nil'] = true
+		NumerationCharDB.test[spellName].dst = NumerationCharDB.test[spellName].dst or {}
+		NumerationCharDB.test[spellName].dst[dstName or 'nil'] = true
+		NumerationCharDB.test[spellName][1] = NumerationCharDB.test[spellName][1] or {}
+		NumerationCharDB.test[spellName][1][amount1 or 'nil'] = true
+		NumerationCharDB.test[spellName][2] = NumerationCharDB.test[spellName][2] or {}
+		NumerationCharDB.test[spellName][2][amount2 or 'nil'] = true
+		NumerationCharDB.test[spellName][3] = NumerationCharDB.test[spellName][3] or {}
+		NumerationCharDB.test[spellName][3][amount3 or 'nil'] = true
+	end
+end
+
+function collect.SPELL_AURA_APPLIED(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool, auraType, ...)
+	debugAbsorb(srcName, dstName, spellId, spellName, auraType, ...)
+	if addon.ids["deathlog"] and addon.guidToClass[dstGUID] and (auraType == "DEBUFF" or deathlogTrackBuffs[spellName]) then
+		addDeathlogEvent(dstGUID, dstName, fmtDeBuff, timestamp, spellId, auraType, 1, "+")
+	end
+	local amount = select(NotGuessedAbsorb[spellId] or 1, ...)
+	if amount and addon.ids["ga"] and addon.guidToClass[srcGUID] then
+		shields[dstGUID] = shields[dstGUID] or {}
+		shields[dstGUID][spellId] = shields[dstGUID][spellId] or {}
+		shields[dstGUID][spellId][srcGUID] = amount
+	end
+end
+function collect.SPELL_AURA_REFRESH(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool, auraType, ...)
+	debugAbsorb(srcName, dstName, spellId, spellName, auraType, ...)
+	local amount = select(NotGuessedAbsorb[spellId] or 1, ...)
+	if amount and addon.ids["ga"] and addon.guidToClass[srcGUID] then
+		if shields[dstGUID] and shields[dstGUID][spellId] and shields[dstGUID][spellId][srcGUID] then
+			local absorb = shields[dstGUID][spellId][srcGUID] - amount
+			if absorb > 0 then
+				EVENT("ga", srcGUID, dstName, spellId, absorb)
+			end
+			shields[dstGUID][spellId][srcGUID] = amount
+		end
+	end
+end
+function collect.SPELL_AURA_REMOVED(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool, auraType, ...)
+	debugAbsorb(srcName, dstName, spellId, spellName, auraType, ...)
+	if addon.ids["deathlog"] and addon.guidToClass[dstGUID] and (auraType == "DEBUFF" or deathlogTrackBuffs[spellName]) then
+		addDeathlogEvent(dstGUID, dstName, fmtDeBuff, timestamp, spellId, auraType, 1, "-")
+	end
+	local amount = select(NotGuessedAbsorb[spellId] or 1, ...)
+	if amount and addon.ids["ga"] and addon.guidToClass[srcGUID] then
+		if shields[dstGUID] and shields[dstGUID][spellId] and shields[dstGUID][spellId][srcGUID] then
+			local absorb = shields[dstGUID][spellId][srcGUID] - amount
+			if absorb > 0 then
+				EVENT("ga", srcGUID, dstName, spellId, absorb)
+			end
+			shields[dstGUID][spellId][srcGUID] = nil
+		end
+	end
+end
 function collect.SPELL_AURA_APPLIED_DOSE(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool, auraType, amount)
 	if addon.ids["deathlog"] and addon.guidToClass[dstGUID] and (auraType == "DEBUFF" or deathlogTrackBuffs[spellName]) then
 		addDeathlogEvent(dstGUID, dstName, fmtDeBuff, timestamp, spellId, auraType, amount or 1, "+")
 	end
-	local duration = AbsorbSpellDuration[spellId]
-	if addon.ids["ga"] and duration and addon.guidToClass[srcGUID] then
-		shields[dstGUID] = shields[dstGUID] or {}
-		shields[dstGUID][spellId] = shields[dstGUID][spellId] or {}
-		shields[dstGUID][spellId][srcGUID] = timestamp + duration
-	end
 end
-collect.SPELL_AURA_APPLIED = collect.SPELL_AURA_APPLIED_DOSE
-collect.SPELL_AURA_REFRESH = collect.SPELL_AURA_APPLIED_DOSE
 collect.SPELL_AURA_REMOVED_DOSE = collect.SPELL_AURA_APPLIED_DOSE
-function collect.SPELL_AURA_REMOVED(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool, auraType)
-	if addon.ids["deathlog"] and addon.guidToClass[dstGUID] and (auraType == "DEBUFF" or deathlogTrackBuffs[spellName]) then
-		addDeathlogEvent(dstGUID, dstName, fmtDeBuff, timestamp, spellId, auraType, 1, "-")
-	end
-	if addon.ids["ga"] and AbsorbSpellDuration[spellId] and addon.guidToClass[srcGUID] then
-		if shields[dstGUID] and shields[dstGUID][spellId] and shields[dstGUID][spellId][srcGUID] then
-			shields[dstGUID][spellId][srcGUID] = timestamp
-		end
-	end
-end
 
 function collect.UNIT_DIED(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags)
 	if addon.ids["deathlog"] and addon.guidToClass[dstGUID] then
