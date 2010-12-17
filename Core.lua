@@ -98,6 +98,34 @@ local bossIds = {
 	[36597] = true, -- The Lich King
 	-- Ruby Sanctum
 	[39863] = true, -- Halion
+	-- CATACLYSM
+	-- Baradin Hold
+	[47120] = true, -- Argaloth
+	-- Blackwing Descent
+	[41570] = true, -- Magmaw
+	[42166] = "Omnitron Defense System", -- Arcanotron
+	[42178] = "Omnitron Defense System", -- Magmatron
+	[42179] = "Omnitron Defense System", -- Electron
+	[42180] = "Omnitron Defense System", -- Toxitron
+	[41378] = true, -- Maloriak
+	[41442] = true, -- Atramedes
+	[43296] = true, -- Chimaeron
+	[41376] = true, -- Nefarian
+	-- Throne of the Four Winds
+	[45870] = "Conclave of Wind", -- Anshal
+	[45871] = "Conclave of Wind", -- Nezir
+	[45872] = "Conclave of Wind", -- Rohash
+	[46753] = true,	-- Al'Akir
+	-- The Bastion of Twilight
+	[45992] = "Valiona & Theralion", -- Valiona
+	[45993] = "Valiona & Theralion", -- Theralion
+	[44600] = true, -- Halfus Wyrmbreaker
+	[43686] = "Twilight Ascendant Council", -- Ignacious
+	[43687] = "Twilight Ascendant Council", -- Feludius
+	[43688] = "Twilight Ascendant Council", -- Arion
+	[43689] = "Twilight Ascendant Council", -- Terrastra
+	[43735] = "Twilight Ascendant Council", -- Elementium Monstrosity
+	[43324] = true, -- Cho'gall
 }
 
 -- used colors
@@ -514,6 +542,7 @@ function addon:ZONE_CHANGED_NEW_AREA(force)
 			self.events:RegisterEvent("UNIT_PET")
 			self.events:RegisterEvent("UNIT_NAME_UPDATE")
 			
+			self.events:RegisterEvent("UNIT_HEALTH")
 			self.events:RegisterEvent("PLAYER_REGEN_DISABLED")
 			self.events:RegisterEvent("PLAYER_REGEN_ENABLED")
 			
@@ -531,6 +560,7 @@ function addon:ZONE_CHANGED_NEW_AREA(force)
 			self.events:UnregisterEvent("UNIT_PET")
 			self.events:UnregisterEvent("UNIT_NAME_UPDATE")
 			
+			self.events:UnregisterEvent("UNIT_HEALTH")
 			self.events:UnregisterEvent("PLAYER_REGEN_DISABLED")
 			self.events:UnregisterEvent("PLAYER_REGEN_ENABLED")
 			
@@ -549,6 +579,7 @@ function addon:ZONE_CHANGED_NEW_AREA(force)
 end
 
 local inCombat = nil
+local meDead = nil
 local combatTimer = CreateFrame("Frame")
 combatTimer:Hide()
 combatTimer:SetScript("OnUpdate", function(self, elapsed)
@@ -561,13 +592,28 @@ function combatTimer:Activate()
 	self.timer = s.combatseconds
 	self:Show()
 end
+function addon:UNIT_HEALTH(unit)
+	if unit ~= "player" then return end
+	local dead = UnitIsDead("player")
+	if dead ~= meDead then
+		meDead = dead
+		if inCombat then return end
+		if meDead then
+			combatTimer:Hide()
+		else
+			combatTimer:Activate()
+		end
+	end
+end
 function addon:PLAYER_REGEN_DISABLED()
 	inCombat = true
 	combatTimer:Hide()
 end
 function addon:PLAYER_REGEN_ENABLED()
 	inCombat = nil
-	combatTimer:Activate()
+	if not meDead then
+		combatTimer:Activate()
+	end
 end
 
 function addon:EnterCombatEvent(timestamp, guid, name)
@@ -587,7 +633,7 @@ function addon:EnterCombatEvent(timestamp, guid, name)
 			current.name = name
 		end
 	end
-	if not inCombat then
+	if not inCombat and not meDead then
 		combatTimer:Activate()
 	end
 end
@@ -612,10 +658,10 @@ function addon:COMBAT_LOG_EVENT_UNFILTERED(e, timestamp, eventtype, srcGUID, src
 	if self.collect[eventtype] then
 		self.collect[eventtype](timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, ...)
 	end
-
-	local ownerClassOrGUID = self.guidToClass[srcGUID]
-	if eventtype == "SPELL_SUMMON" and ownerClassOrGUID then
-		local realSrcGUID = self.guidToClass[ownerClassOrGUID] and ownerClassOrGUID or srcGUID
+	
+	local ClassOrOwnerGUID = self.guidToClass[srcGUID]
+	if eventtype == "SPELL_SUMMON" and ClassOrOwnerGUID then
+		local realSrcGUID = self.guidToClass[ClassOrOwnerGUID] and ClassOrOwnerGUID or srcGUID
 		summonOwner[dstGUID] = realSrcGUID
 		summonName[dstGUID] = dstName
 		self.guidToClass[dstGUID] = realSrcGUID
