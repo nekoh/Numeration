@@ -238,112 +238,6 @@ local NotGuessedAbsorb = {
 	[88063] = 1, -- Guarded by the Light
 	[48707] = 2, -- Anti-Magic Shell
 }
--- property of RecountGuessedAbsorbs by Elsia
-local AbsorbSpellDuration = {
-	-- Death Knight
-	[48707] = 5, -- Anti-Magic Shell (DK) Rank 1 -- Does not currently seem to show tracable combat log events. It shows energizes which do not reveal the amount of damage absorbed
-	[51052] = 10, -- Anti-Magic Zone (DK)( Rank 1 (Correct spellID?)
-		-- Does DK Spell Deflection show absorbs in the CL?
---	[51271] = 20, -- Unbreakable Armor (DK) TODO CATA is now Pillar of Frost
-	[77535] = 10, -- Blood Shield (DK)
-	-- Druid
-	[62606] = 10, -- Savage Defense proc. (Druid) Tooltip of the original spell doesn't clearly state that this is an absorb, but the buff does.
-	-- Mage
-	[11426] = 60, -- Ice Barrier (Mage)
-	[1463] = 60, --  Mana shield (Mage)
-	[543] = 30 , -- Fire Ward (Mage) TODO CATA is now Mage Ward
-	-- Paladin
-	[86273] = 6, -- TODO CATA new Illuminated Healing
-	[88063] = 6, -- Guarded by the Light
-	-- Priest
-	[17] = 30, -- Power Word: Shield (Priest)
-	[47509] = 12, -- Divine Aegis (Priest)
-	[47511] = 12,
-	[47515] = 12, -- Divine Aegis (Priest) (Some of these are not actual buff spellIDs)
-	[47753] = 12, -- Divine Aegis (Priest)
-	[54704] = 12, -- Divine Aegis (Priest)
-	[47788] = 10, -- Guardian Spirit  (Priest) (50 nominal absorb, this may not show in the CL)
---	[62618] = 25, -- Power Word: Barrier TODO CATA new; 4.0.3a is now damage reduction
---	[81781] = 25, -- Power Word: Barrier TODO CATA new; 4.0.3a is now damage reduction
-	-- Warlock
-	[7812] = 30, -- Sacrifice (warlock)
-	[6229] = 30, -- Shadow Ward (warlock)
-	[91711] = 30, -- Nether Ward
-	-- Consumables
-	[29674] = 86400, -- Lesser Ward of Shielding
-	[29719] = 86400, -- Greater Ward of Shielding (these have infinite duration, set for a day here :P)
-	[29701] = 86400,
-	[28538] = 120, -- Major Holy Protection Potion
-	[28537] = 120, -- Major Shadow
-	[28536] = 120, --  Major Arcane
-	[28513] = 120, -- Major Nature
-	[28512] = 120, -- Major Frost
-	[28511] = 120, -- Major Fire
-	[7233] = 120, -- Fire
-	[7239] = 120, -- Frost
-	[7242] = 120, -- Shadow Protection Potion
-	[7245] = 120, -- Holy
-	[53915] = 120, -- Mighty Shadow Protection Potion
-	[53914] = 120, -- Mighty Nature Protection Potion
-	[53913] = 120, -- Mighty Frost Protection Potion
-	[53911] = 120, -- Mighty Fire
-	[53910] = 120, -- Mighty Arcane
-	[17548] = 120, --  Greater Shadow
-	[17546] = 120, -- Greater Nature
-	[17545] = 120, -- Greater Holy
-	[17544] = 120, -- Greater Frost
-	[17543] = 120, -- Greater Fire
-	[17549] = 120, -- Greater Arcane
-	[28527] = 15, -- Fel Blossom
-	[29432] = 3600, -- Frozen Rune usage (Naxx classic)
-	-- Item usage
-	[36481] = 4, -- Arcane Barrier (TK Kael'Thas) Shield
-	[57350] = 6, -- Darkmoon Card: Illusion
-	[17252] = 30, -- Mark of the Dragon Lord (LBRS epic ring) usage
-	[25750] = 15, -- Defiler's Talisman/Talisman of Arathor Rank 1
-	[25747] = 15,
-	[25746] = 15,
-	[23991] = 15,
-	[31000] = 300, -- Pendant of Shadow's End Usage
-	[30997] = 300, -- Pendant of Frozen Flame Usage
-	[31002] = 300, -- Pendant of the Null Rune
-	[30999] = 300, -- Pendant of Withering
-	[30994] = 300, -- Pendant of Thawing
---	[31000] = 300, -- TODO duplicate
-	[23506]= 20, -- Arena Grand Master Usage (Aura of Protection)
-	[12561] = 60, -- Goblin Construction Helmet usage
-	[31771] = 20, -- Runed Fungalcap usage
-	[21956] = 10, -- Mark of Resolution usage
-	[29506] = 20, -- The Burrower's Shell
-	[4057] = 60, -- Flame Deflector
-	[4077] = 60, -- Ice Deflector
-	[39228] = 20, -- Argussian Compass (may not be an actual absorb)
-	-- Item procs
-	[27779] = 30, -- Divine Protection - Priest dungeon set 1/2  Proc
-	[11657] = 20, -- Jang'thraze (Zul Farrak) proc
-	[10368] = 15, -- Uther's Strength proc
-	[37515] = 15, -- Warbringer Armor Proc
-	[42137] = 86400, -- Greater Rune of Warding Proc
-	[26467] = 30, -- Scarab Brooch proc
-	[26470] = 8, -- Scarab Brooch proc (actual)
-	[27539] = 6, -- Thick Obsidian Breatplate proc
-	[28810] = 30, -- Faith Set Proc Armor of Faith
-	[54808] = 12, -- Noise Machine proc Sonic Shield 
-	[55019] = 12, -- Sonic Shield (one of these too ought to be wrong)
-	[64411] = 15, -- Blessing of the Ancient (Val'anyr Hammer of Ancient Kings equip effect)
-	[64413] = 8, -- Val'anyr, Hammer of Ancient Kings proc Protection of Ancient Kings
-	-- Misc
-	[40322] = 30, -- Teron's Vengeful Spirit Ghost - Spirit Shield
-	-- Boss abilities
-	[65874] = 15, -- Twin Val'kyr's Shield of Darkness 175000
-	[67257] = 15, -- 300000
-	[67256] = 15, -- 700000
-	[67258] = 15, -- 1200000
-	[65858] = 15, -- Twin Val'kyr's Shield of Lights 175000
-	[67260] = 15, -- 300000
-	[67259] = 15, -- 700000
-	[67261] = 15, -- 1200000
-}
 
 local function addSpellDetails(u, etype, spellID, amount)
 	local event = u[etype]
@@ -484,28 +378,7 @@ function collect.SPELL_ENERGIZE(timestamp, srcGUID, srcName, srcFlags, dstGUID, 
 end
 collect.SPELL_PERIODIC_ENERGIZE = collect.SPELL_ENERGIZE
 
-local debugAbsorb = function(srcName, dstName, spellId, spellName, auraType, amount1, amount2, amount3)
-	if amount1 or AbsorbSpellDuration[spellId] then
-		NumerationCharDB.test = NumerationCharDB.test or {}
-		NumerationCharDB.test[spellName] = NumerationCharDB.test[spellName] or {}
-		NumerationCharDB.test[spellName].id = spellId
-		NumerationCharDB.test[spellName].auraType = auraType
-		NumerationCharDB.test[spellName].inDB = not not AbsorbSpellDuration[spellId]
-		NumerationCharDB.test[spellName].src = NumerationCharDB.test[spellName].src or {}
-		NumerationCharDB.test[spellName].src[srcName or 'nil'] = true
-		NumerationCharDB.test[spellName].dst = NumerationCharDB.test[spellName].dst or {}
-		NumerationCharDB.test[spellName].dst[dstName or 'nil'] = true
-		NumerationCharDB.test[spellName][1] = NumerationCharDB.test[spellName][1] or {}
-		NumerationCharDB.test[spellName][1][amount1 or 'nil'] = true
-		NumerationCharDB.test[spellName][2] = NumerationCharDB.test[spellName][2] or {}
-		NumerationCharDB.test[spellName][2][amount2 or 'nil'] = true
-		NumerationCharDB.test[spellName][3] = NumerationCharDB.test[spellName][3] or {}
-		NumerationCharDB.test[spellName][3][amount3 or 'nil'] = true
-	end
-end
-
 function collect.SPELL_AURA_APPLIED(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool, auraType, ...)
-	debugAbsorb(srcName, dstName, spellId, spellName, auraType, ...)
 	if addon.ids.deathlog and addon.guidToClass[dstGUID] and (auraType == "DEBUFF" or deathlogTrackBuffs[spellName]) then
 		addDeathlogEvent(dstGUID, dstName, fmtDeBuff, timestamp, spellId, auraType, 1, "+")
 	end
@@ -517,7 +390,6 @@ function collect.SPELL_AURA_APPLIED(timestamp, srcGUID, srcName, srcFlags, dstGU
 	end
 end
 function collect.SPELL_AURA_REFRESH(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool, auraType, ...)
-	debugAbsorb(srcName, dstName, spellId, spellName, auraType, ...)
 	local amount = select(NotGuessedAbsorb[spellId] or 1, ...)
 	if amount and addon.ids.ga and addon.guidToClass[srcGUID] then
 		if shields[dstGUID] and shields[dstGUID][spellId] and shields[dstGUID][spellId][srcGUID] then
@@ -530,7 +402,6 @@ function collect.SPELL_AURA_REFRESH(timestamp, srcGUID, srcName, srcFlags, dstGU
 	end
 end
 function collect.SPELL_AURA_REMOVED(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool, auraType, ...)
-	debugAbsorb(srcName, dstName, spellId, spellName, auraType, ...)
 	if addon.ids.deathlog and addon.guidToClass[dstGUID] and (auraType == "DEBUFF" or deathlogTrackBuffs[spellName]) then
 		addDeathlogEvent(dstGUID, dstName, fmtDeBuff, timestamp, spellId, auraType, 1, "-")
 	end
