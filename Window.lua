@@ -54,7 +54,7 @@ local menuTable = {
 		},
 	},
 	{ text = "", notClickable = true },
-	{ text = "Reset", func = function() self:ShowResetWindow() end, notCheckable = true },
+	{ text = "Reset", func = function() window:ShowResetWindow() end, notCheckable = true },
 }
 
 local updateReportChannels = function()
