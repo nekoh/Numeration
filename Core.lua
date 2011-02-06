@@ -529,10 +529,12 @@ function addon:ZONE_CHANGED_NEW_AREA(force)
 		self.zoneType = zoneType
 		
 		if not NumerationCharOptions.onlyinstance or zoneType == "party" or zoneType == "raid" then
-			local curZone = GetRealZoneText()
-			if curZone ~= NumerationCharDB.zone then
-				NumerationCharDB.zone = curZone
-				addon.window:ShowResetWindow()
+			if zoneType == "party" or zoneType == "raid" or zoneType == "pvp" then
+				local curZone = GetRealZoneText()
+				if curZone ~= NumerationCharDB.zone then
+					NumerationCharDB.zone = curZone
+					addon.window:ShowResetWindow()
+				end
 			end
 			self:UpdateGUIDS()
 			

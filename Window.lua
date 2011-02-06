@@ -6,6 +6,7 @@ local lines = {}
 
 local noop = function() end
 local backAction = noop
+local reportAction = noop
 local backdrop = {
 	bgFile = [[Interface\Tooltips\UI-Tooltip-Background]],--[[Interface\DialogFrame\UI-DialogBox-Background]]---,
 	edgeFile = "", tile = true, tileSize = 16, edgeSize = 0,
@@ -16,8 +17,62 @@ local clickFunction = function(self, btn)
 		self.detailAction(self)
 	elseif btn == "RightButton" then
 		backAction(self)
+	elseif btn == "MiddleButton" then
+		reportAction(self.num)
 	end
 end
+
+local optionFunction = function(f, id, _, checked)
+	addon:SetOption(id, checked)
+end
+local numReports = 9
+local reportFunction = function(f, chatType, channel)
+	addon:Report(numReports, chatType, channel)
+	CloseDropDownMenus()
+end
+local dropdown = CreateFrame("Frame", "NumerationMenuFrame", nil, "UIDropDownMenuTemplate")
+local menuTable = {
+	{ text = "Numeration", isTitle = true, notCheckable = true, notClickable = true },
+	{ text = "Report", notCheckable = true, hasArrow = true,
+		menuList = {
+			{ text = "Report", isTitle = true, notCheckable = true, notClickable = true },
+			{ text = "Say", arg1 = "SAY", func = reportFunction, notCheckable = 1 },
+			{ text = "Raid", arg1 = "RAID", func = reportFunction, notCheckable = 1 },
+			{ text = "Party", arg1 = "PARTY", func = reportFunction, notCheckable = 1 },
+			{ text = "Guild", arg1 = "GUILD", func = reportFunction, notCheckable = 1 },
+			{ text = "Officer", arg1 = "OFFICER", func = reportFunction, notCheckable = 1 },
+			{ text = "Whisper", arg1 = "WHISPER", arg2 = "target", func = reportFunction, notCheckable = 1 },
+			{ text = "Channel  ", notCheckable = 1, keepShownOnClick = true, hasArrow = true, menuList = {} }
+		},
+	},
+	{ text = "Options", notCheckable = true, hasArrow = true,
+		menuList = {
+			{ text = "Merge Pets w/ Owners", arg1 = "petsmerged", func = optionFunction, checked = function() return addon:GetOption("petsmerged") end, keepShownOnClick = true },
+			{ text = "Keep Only Boss Segments", arg1 = "keeponlybosses", func = optionFunction, checked = function() return addon:GetOption("keeponlybosses") end, keepShownOnClick = true },
+			{ text = "Record Only In Instances", arg1 = "onlyinstance", func = optionFunction, checked = function() return addon:GetOption("onlyinstance") end, keepShownOnClick = true },
+			{ text = "Show Minimap Icon", func = function(f, a1, a2, checked) addon:MinimapIconShow(checked) end, checked = function() return not NumerationCharOptions.minimap.hide end, keepShownOnClick = true },
+		},
+	},
+	{ text = "", notClickable = true },
+	{ text = "Reset", func = function() self:ShowResetWindow() end, notCheckable = true },
+}
+
+local updateReportChannels = function()
+	menuTable[2].menuList[8].menuList = table.wipe(menuTable[2].menuList[8].menuList)
+	for i = 1, GetNumDisplayChannels() do
+		local name, _, _, channelNumber, _, active, category = GetChannelDisplayInfo(i)
+		if category == "CHANNEL_CATEGORY_CUSTOM" then
+			tinsert(menuTable[2].menuList[8].menuList, { text = name, arg1 = "CHANNEL", arg2 = channelNumber, func = reportFunction, notCheckable = 1 })
+		end
+	end
+end
+
+local reportActionFunction = function(num)
+	updateReportChannels()
+	numReports = num
+	EasyMenu(menuTable[2].menuList, dropdown, "cursor", 0 , 0, "MENU")
+end
+
 
 local s
 function window:OnInitialize()
@@ -59,39 +114,6 @@ function window:OnInitialize()
 		self:SetPoint("CENTER", UIParent, "CENTER", x*uis/s, y*uis/s)
 	end
 
-	local dropdown = CreateFrame("Frame", "NumerationMenuFrame", nil, "UIDropDownMenuTemplate")
-	local optionFunction = function(f, id, _, checked)
-		addon:SetOption(id, checked)
-	end
-	local reportFunction = function(f, chatType, channel)
-		addon:Report(9, chatType, channel)
-		CloseDropDownMenus()
-	end
-	local menuTable = {
-		{ text = "Numeration", isTitle = true, notCheckable = true, notClickable = true },
-		{ text = "Report", notCheckable = true, hasArrow = true,
-			menuList = {
-				{ text = "Say", arg1 = "SAY", func = reportFunction, notCheckable = 1 },
-				{ text = "Raid", arg1 = "RAID", func = reportFunction, notCheckable = 1 },
-				{ text = "Party", arg1 = "PARTY", func = reportFunction, notCheckable = 1 },
-				{ text = "Guild", arg1 = "GUILD", func = reportFunction, notCheckable = 1 },
-				{ text = "Officer", arg1 = "OFFICER", func = reportFunction, notCheckable = 1 },
-				{ text = "Whisper", arg1 = "WHISPER", arg2 = "target", func = reportFunction, notCheckable = 1 },
-				{ text = "Channel  ", notCheckable = 1, keepShownOnClick = true, hasArrow = true, menuList = {} }
-			},
-		},
-		{ text = "Options", notCheckable = true, hasArrow = true,
-			menuList = {
-				{ text = "Merge Pets w/ Owners", arg1 = "petsmerged", func = optionFunction, checked = function() return addon:GetOption("petsmerged") end, keepShownOnClick = true },
-				{ text = "Keep Only Boss Segments", arg1 = "keeponlybosses", func = optionFunction, checked = function() return addon:GetOption("keeponlybosses") end, keepShownOnClick = true },
-				{ text = "Record Only In Instances", arg1 = "onlyinstance", func = optionFunction, checked = function() return addon:GetOption("onlyinstance") end, keepShownOnClick = true },
-				{ text = "Show Minimap Icon", func = function(f, a1, a2, checked) addon:MinimapIconShow(checked) end, checked = function() return not NumerationCharOptions.minimap.hide end, keepShownOnClick = true },
-			},
-		},
-		{ text = "", notClickable = true },
-		{ text = "Reset", func = function() self:ShowResetWindow() end, notCheckable = true },
-	}
-
 	local scroll = self:CreateTexture(nil, "ARTWORK")
 	self.scroll = scroll
 		scroll:SetTexture([[Interface\Buttons\WHITE8X8]])
@@ -111,13 +133,8 @@ function window:OnInitialize()
 		reset:SetHeight(s.titleheight)
 		reset:SetPoint("TOPRIGHT", -1, -1)
 		reset:SetScript("OnMouseUp", function()
-			menuTable[2].menuList[7].menuList = table.wipe(menuTable[2].menuList[7].menuList)
-			for i = 1, GetNumDisplayChannels() do
-				local name, _, _, channelNumber, _, active, category = GetChannelDisplayInfo(i)
-				if category == "CHANNEL_CATEGORY_CUSTOM" then
-					tinsert(menuTable[2].menuList[7].menuList, { text = name, arg1 = "CHANNEL", arg2 = channelNumber, func = reportFunction, notCheckable = 1 })
-				end
-			end
+			updateReportChannels()
+			numReports = 9
 			EasyMenu(menuTable, dropdown, "cursor", 0 , 0, "MENU")
 		end)
 		reset:SetScript("OnEnter", function() reset:SetBackdropColor(1, .82, 0, .8) end)
@@ -213,6 +230,7 @@ end
 
 function window:SetBackAction(f)
 	backAction = f or noop
+	reportAction = noop
 end
 
 local SetValues = function(f, c, m)
@@ -240,6 +258,10 @@ local SetColor = function(f, r, g, b, a)
 end
 local SetDetailAction = function(f, func)
 	f.detailAction = func or noop
+end
+local SetReportNumber = function(f, num)
+	reportAction = reportActionFunction
+	f.num = num
 end
 window.SetDetailAction = SetDetailAction
 
@@ -300,6 +322,7 @@ function window:GetLine(id)
 	f.SetRightText = SetRightText
 	f.SetColor = SetColor
 	f.SetDetailAction = SetDetailAction
+	f.SetReportNumber = SetReportNumber
 
 	return f
 end

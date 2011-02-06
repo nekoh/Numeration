@@ -26,8 +26,8 @@ function view:Init()
 	local entry = dl[addon.nav.id]
 	if not entry then return end
 	
-	local playerName, class = strsplit("#", entry[0])
-	addon.window:SetTitle(format("%s: |cff%s%s|r", v.name, colorhex[class], playerName), v.c[1], v.c[2], v.c[3])
+	local playerName = strsplit("#", entry[0])
+	addon.window:SetTitle(format("%s: %s", v.name, playerName), v.c[1], v.c[2], v.c[3])
 end
 
 local schoolColor = {
@@ -116,6 +116,53 @@ function view:Update()
 		line:SetLeftText("|cffAAAAAA%s|r%s", rtime, text)
 		line:SetRightText("%s%%", healthpct)
 		line:SetDetailAction(nil)
+		line:SetReportNumber(#dld-i+1)
 		line:Show()
+	end
+end
+
+local reportText = {}
+reportText.DT = function(event, spellId, srcName, spellSchool, amount, overkill, resisted, blocked, absorbed, modifier)
+	overkill = (overkill~="") and string.format(">%s", overkill) or ""
+	absorbed = (absorbed~="") and string.format(" (%s absorbed)", absorbed) or "" -- 1,1,0
+	blocked = (blocked~="") and string.format(" (%s blocked)", blocked) or "" -- .66,.66,.66 // 0.5,0,1
+	resisted = (resisted~="") and string.format(" (%s resisted)", resisted) or "" -- 0.5,0,0.5
+	return string.format("%+d%s%s%s%s%s [%s - %s]", -tonumber(amount), modifier, overkill, absorbed, blocked, resisted, srcName, GetSpellLink(spellId) or spellId)
+end
+reportText.DM = function(event, spellId, srcName, spellSchool, missType, amountMissed)
+	return string.format("%s [%s - %s]", missType, srcName, GetSpellLink(spellId) or spellId)
+end
+reportText.HT = function(event, spellId, srcName, amount, overhealing, modifier)
+	overhealing = (overhealing~="") and string.format(">%i", overhealing) or "" -- 0,0.705,0.5 = 00B480 // 4080D9
+	return string.format("%+d%s%s [%s - %s]", amount, modifier, overhealing, srcName, GetSpellLink(spellId) or spellId)
+end
+reportText.AB = function(event, spellId, modifier, stacks)
+	stacks = (stacks~="") and string.format(" (%s)", stacks) or ""
+	return string.format("%s%s%s", modifier, GetSpellLink(spellId) or spellId, stacks)
+end
+reportText.AD = reportText.AB
+reportText.X = function(event, spellId)
+	return "Death"
+end
+function view:Report(merged, num_lines)
+	local set = addon:GetSet(addon.nav.set)
+	local dld = set.deathlog[addon.nav.id]
+	
+	if #dld == 0 then return end
+	if #dld < num_lines then
+		num_lines = #dld
+	end
+	
+	-- display
+	addon:PrintHeaderLine(set)
+	for i = 1, num_lines do
+		local entry = dld[#dld-num_lines+i]
+
+		local rtime, healthpct, spellId, event, info = strsplit("#", entry)
+		spellId = tonumber(spellId) or spellId
+		healthpct = tonumber(healthpct)
+		local text = reportText[event](event, spellId, strsplit(":", info))
+		
+		addon:PrintLine("%s %s%% %s", rtime, healthpct, text)
 	end
 end

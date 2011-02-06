@@ -122,6 +122,7 @@ function view:Update(merged)
 		line:SetIcon(icon)
 		line.spellId = id
 		line:SetDetailAction(action)
+		line:SetReportNumber(i)
 		line:Show()
 	end
 	

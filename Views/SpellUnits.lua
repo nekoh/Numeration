@@ -75,6 +75,7 @@ function view:Update(merged)
 		line:SetRightText("%i (%02.1f%%)", value, value/total*100)
 		line:SetColor(c[1], c[2], c[3])
 		line:SetDetailAction(nil)
+		line:SetReportNumber(i)
 		line:Show()
 	end
 	

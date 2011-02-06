@@ -107,6 +107,7 @@ function view:Update(merged)
 		line:SetColor(c[1], c[2], c[3])
 		line:SetIcon(icon)
 		line:SetDetailAction(nil)
+		line:SetReportNumber(i)
 		line:Show()
 	end
 	

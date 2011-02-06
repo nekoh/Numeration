@@ -75,6 +75,7 @@ function view:Update(merged)
 		line:SetColor(c[1], c[2], c[3])
 		line.target = target
 		line:SetDetailAction(detailAction)
+		line:SetReportNumber(i)
 		line:Show()
 	end
 	

@@ -86,6 +86,7 @@ function view:Update(merged)
 		line.spellId = id
 		line.spell = id
 		line:SetDetailAction(detailAction)
+		line:SetReportNumber(i)
 		line:Show()
 	end
 	
