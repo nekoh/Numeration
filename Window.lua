@@ -41,7 +41,7 @@ local menuTable = {
 			{ text = "Party", arg1 = "PARTY", func = reportFunction, notCheckable = 1 },
 			{ text = "Guild", arg1 = "GUILD", func = reportFunction, notCheckable = 1 },
 			{ text = "Officer", arg1 = "OFFICER", func = reportFunction, notCheckable = 1 },
-			{ text = "Whisper", arg1 = "WHISPER", arg2 = "target", func = reportFunction, notCheckable = 1 },
+			{ text = "Whisper", func = function() window:ShowWhisperWindow() end, notCheckable = 1 },
 			{ text = "Channel  ", notCheckable = 1, keepShownOnClick = true, hasArrow = true, menuList = {} }
 		},
 	},
@@ -374,4 +374,56 @@ function window:ShowResetWindow()
 	end
 
 	reset:Show()
+end
+
+local whisper
+function window:ShowWhisperWindow()
+	if not whisper then
+		whisper = CreateFrame("Frame", nil, window)
+		whisper:SetBackdrop(backdrop)
+		whisper:SetBackdropColor(0, 0, 0, 1)
+		whisper:SetWidth(200)
+		whisper:SetHeight(45)
+		whisper:SetPoint("CENTER", UIParent, "CENTER", 0, 200)
+
+		whisper.title = whisper:CreateTexture(nil, "ARTWORK")
+		whisper.title:SetTexture([[Interface\TargetingFrame\UI-StatusBar]])
+		whisper.title:SetTexCoord(.8, 1, .8, 1)
+		whisper.title:SetVertexColor(.1, .1, .1, .9)
+		whisper.title:SetPoint("TOPLEFT", 1, -1)
+		whisper.title:SetPoint("BOTTOMRIGHT", whisper, "TOPRIGHT", -1, -s.titleheight-1)
+		
+		whisper.titletext = whisper:CreateFontString(nil, "ARTWORK")
+		whisper.titletext:SetFont(s.titlefont, s.titlefontsize, "OUTLINE")
+		whisper.titletext:SetTextColor(s.titlefontcolor[1], s.titlefontcolor[2], s.titlefontcolor[3], 1)
+		whisper.titletext:SetText("Numeration: Whisper target")
+		whisper.titletext:SetPoint("TOPLEFT", 5, -2)
+
+		whisper.target = CreateFrame("EditBox", "NumerationWhisperEditBox", whisper)
+		whisper.target:SetBackdrop(backdrop)
+		whisper.target:SetBackdropColor(0, 0, 0, 1)
+		whisper.target:SetFontObject(ChatFontSmall)
+		whisper.target:SetWidth(90)
+		whisper.target:SetHeight(18)
+		whisper.target:SetPoint("BOTTOMLEFT", 10, 5)
+		whisper.target:SetScript("OnEscapePressed", function() whisper:Hide() end)
+		whisper.target:SetScript("OnEnterPressed", function() reportFunction(self, "WHISPER", whisper.target:GetText()) whisper:Hide() end)
+		
+
+		whisper.yes = CreateFrame("Button", nil, whisper)
+		whisper.yes:SetBackdrop(backdrop)
+		whisper.yes:SetBackdropColor(0, .2, 0, 1)
+		whisper.yes:SetHighlightTexture([[Interface\QuestFrame\UI-QuestTitleHighlight]])
+		whisper.yes:SetNormalFontObject(ChatFontSmall)
+		whisper.yes:SetText("Whisper")
+		whisper.yes:SetWidth(70)
+		whisper.yes:SetHeight(18)
+		whisper.yes:SetPoint("BOTTOMRIGHT", -10, 5)
+		whisper.yes:SetScript("OnMouseUp", function() reportFunction(self, "WHISPER", whisper.target:GetText()) whisper:Hide() end)
+	end
+	if UnitIsPlayer("target") and UnitCanCooperate("player", "target") then
+		whisper.target:SetText(UnitName("target"))
+	end
+
+	whisper:Show()
 end

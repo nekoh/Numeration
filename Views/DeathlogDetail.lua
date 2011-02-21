@@ -127,18 +127,18 @@ reportText.DT = function(event, spellId, srcName, spellSchool, amount, overkill,
 	absorbed = (absorbed~="") and string.format(" (%s absorbed)", absorbed) or "" -- 1,1,0
 	blocked = (blocked~="") and string.format(" (%s blocked)", blocked) or "" -- .66,.66,.66 // 0.5,0,1
 	resisted = (resisted~="") and string.format(" (%s resisted)", resisted) or "" -- 0.5,0,0.5
-	return string.format("%+d%s%s%s%s%s [%s - %s]", -tonumber(amount), modifier, overkill, absorbed, blocked, resisted, srcName, GetSpellLink(spellId) or spellId)
+	return string.format("%+d%s%s%s%s%s [%s - %s]", -tonumber(amount), modifier, overkill, absorbed, blocked, resisted, srcName, GetSpellLink(spellId) or spellName[spellId] or spellId)
 end
 reportText.DM = function(event, spellId, srcName, spellSchool, missType, amountMissed)
-	return string.format("%s [%s - %s]", missType, srcName, GetSpellLink(spellId) or spellId)
+	return string.format("%s [%s - %s]", missType, srcName, GetSpellLink(spellId) or spellName[spellId] or spellId)
 end
 reportText.HT = function(event, spellId, srcName, amount, overhealing, modifier)
 	overhealing = (overhealing~="") and string.format(">%i", overhealing) or "" -- 0,0.705,0.5 = 00B480 // 4080D9
-	return string.format("%+d%s%s [%s - %s]", amount, modifier, overhealing, srcName, GetSpellLink(spellId) or spellId)
+	return string.format("%+d%s%s [%s - %s]", amount, modifier, overhealing, srcName, GetSpellLink(spellId) or spellName[spellId] or spellId)
 end
 reportText.AB = function(event, spellId, modifier, stacks)
 	stacks = (stacks~="") and string.format(" (%s)", stacks) or ""
-	return string.format("%s%s%s", modifier, GetSpellLink(spellId) or spellId, stacks)
+	return string.format("%s%s%s", modifier, GetSpellLink(spellId) or spellName[spellId] or spellId, stacks)
 end
 reportText.AD = reportText.AB
 reportText.X = function(event, spellId)
