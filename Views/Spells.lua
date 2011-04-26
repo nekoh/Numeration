@@ -112,7 +112,7 @@ function view:Report(merged, num_lines)
 		local value = spellToValue[sorttbl[i]]
 		local name = spellName[sorttbl[i]] or sorttbl[i]
 
-		addon:PrintLine("%i. %s %i (%02.1f%%)", i, name, value, value/total*100)
+		addon:PrintLine("%i. %s  %i (%02.1f%%)", i, name, value, value/total*100)
 	end
 	
 	sorttbl = wipe(sorttbl)

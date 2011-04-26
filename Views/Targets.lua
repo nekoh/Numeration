@@ -101,7 +101,7 @@ function view:Report(merged, num_lines)
 		local target = sorttbl[i]
 		local value = targetToValue[target]
 		
-		addon:PrintLine("%i. %s %i (%02.1f%%)", i, target, value, value/total*100)
+		addon:PrintLine("%i. %s  %i (%02.1f%%)", i, target, value, value/total*100)
 	end
 	
 	sorttbl = wipe(sorttbl)

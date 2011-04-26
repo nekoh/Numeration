@@ -352,6 +352,9 @@ function collect.SPELL_HEAL(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstN
 		end
 		EVENT("hd", srcGUID, dstName, spellId, amount - overhealing, timestamp)
 	end
+	if addon.guidToClass[dstGUID] then
+		EVENT("ht", dstGUID, srcName, spellId, amount - overhealing, timestamp)
+	end
 	if addon.ids.deathlog and addon.guidToClass[dstGUID] and not deathlogHealFilter[spellName] then
 		addDeathlogEvent(dstGUID, dstName, fmtHealing, timestamp, srcName, spellId, amount, overhealing, critical)
 	end
@@ -451,7 +454,7 @@ function collect:RemoveUnneededEvents()
 		collect.SPELL_AURA_REMOVED_DOSE = nil
 	end
 
-	if not addon.ids.hd and not addon.ids.oh and not addon.ids.deathlog then
+	if not addon.ids.hd and not addon.ids.oh and not addon.ids.ht and not addon.ids.deathlog then
 		collect.SPELL_HEAL = nil
 		collect.SPELL_PERIODIC_HEAL = nil
 	end

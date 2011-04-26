@@ -69,6 +69,12 @@ n.types = {
 		c = {.25, .5, .85},
 	},
 --	{
+--		name = "Healing Taken: Abilities",
+--		id = "ht",
+--		view = "Spells",
+--		c = {.25, .5, .85},
+--	},
+--	{
 --		name = "Healing",
 --		id = "hd",
 --		c = {.25, .5, .85},

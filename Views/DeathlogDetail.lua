@@ -163,6 +163,6 @@ function view:Report(merged, num_lines)
 		healthpct = tonumber(healthpct)
 		local text = reportText[event](event, spellId, strsplit(":", info))
 		
-		addon:PrintLine("%s %s%% %s", rtime, healthpct, text)
+		addon:PrintLine("%s -- %s%%  %s", rtime, healthpct, text)
 	end
 end

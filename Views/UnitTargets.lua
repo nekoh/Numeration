@@ -141,7 +141,7 @@ function view:Report(merged, num_lines)
 		if petName then
 			target = format("%s <%s>", target, petName)
 		end
-		addon:PrintLine("%i. %s %i (%02.1f%%)", i, target, value, value/total*100)
+		addon:PrintLine("%i. %s  %i (%02.1f%%)", i, target, value, value/total*100)
 	end
 	
 	sorttbl = wipe(sorttbl)

@@ -164,9 +164,9 @@ function view:Report(merged, num_lines)
 		end
 		
 		if time ~= 0 then
-			addon:PrintLine("%i. %s %i (%.1f, %02.1f%%)", i, name, value, value/time, value/total*100)
+			addon:PrintLine("%i. %s  %i (%.1f, %02.1f%%)", i, name, value, value/time, value/total*100)
 		else
-			addon:PrintLine("%i. %s %i (%02.1f%%)", i, name, value, value/total*100)
+			addon:PrintLine("%i. %s  %i (%02.1f%%)", i, name, value, value/total*100)
 		end
 	end
 	
