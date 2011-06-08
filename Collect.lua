@@ -24,6 +24,7 @@ local deathlogTrackBuffs = {
 	-- HUNTER
 	[spellName[19263]] = true, -- Deterrence
 	[spellName[5384]] = true, -- Feign Death
+	[spellName[63087]] = true, -- Glyph of Raptor Strike
 	-- MAGE
 	[spellName[45438]] = true, -- Ice Block
 	-- PALADIN
@@ -32,6 +33,7 @@ local deathlogTrackBuffs = {
 	[spellName[1022]] = true, -- Hand of Protection
 	[spellName[1044]] = true, -- Hand of Freedom
 	[spellName[1038]] = true, -- Hand of Salvation
+	[spellName[6940]] = true, -- Hand of Sacrifice
 --	[spellName[19752]] = true, -- Divine Intervention
 	--PRIEST
 	[spellName[47585]] = true, -- Dispersion

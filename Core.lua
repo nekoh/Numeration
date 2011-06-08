@@ -126,6 +126,15 @@ local bossIds = {
 	[43689] = "Twilight Ascendant Council", -- Terrastra
 	[43735] = "Twilight Ascendant Council", -- Elementium Monstrosity
 	[43324] = true, -- Cho'gall
+	[45213] = true, -- Sinestra
+	-- Firelands
+	[52558] = true, -- Lord Rhyolith
+	[52498] = true, -- Beth'tilac
+	[54097] = true, -- Alysrazor
+	[53691] = true, -- Shannox
+	[53494] = true, -- Baleroc
+	[52571] = true, -- Majordomo Staghelm
+	[52409] = true, -- Ragnaros
 }
 
 -- used colors
@@ -656,7 +665,7 @@ function addon:LeaveCombatEvent()
 	end
 end
 
-function addon:COMBAT_LOG_EVENT_UNFILTERED(e, timestamp, eventtype, hideCaster, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, ...)
+function addon:COMBAT_LOG_EVENT_UNFILTERED(e, timestamp, eventtype, hideCaster, srcGUID, srcName, srcFlags, srcRaidFlags, dstGUID, dstName, dstFlags, dstRaidFlags, ...)
 	if self.collect[eventtype] then
 		self.collect[eventtype](timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, ...)
 	end
