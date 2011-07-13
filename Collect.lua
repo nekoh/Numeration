@@ -283,6 +283,7 @@ end
 
 local function EVENT(etype, playerID, targetName, spellID, amount, timestamp)
 	if not addon.ids[etype] then return end
+	if type(amount) ~= "number" then return end
 	local all, atm = addon:GetSets()
 
 	-- Total Set

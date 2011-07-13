@@ -130,7 +130,7 @@ local bossIds = {
 	-- Firelands
 	[52558] = true, -- Lord Rhyolith
 	[52498] = true, -- Beth'tilac
-	[54097] = true, -- Alysrazor
+	[52530] = true, -- Alysrazor
 	[53691] = true, -- Shannox
 	[53494] = true, -- Baleroc
 	[52571] = true, -- Majordomo Staghelm
