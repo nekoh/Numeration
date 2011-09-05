@@ -66,7 +66,7 @@ function view:Update()
 		line:SetValues(1, 1)
 		line:SetLeftText(" %s", t.name)
 		if amount ~= 0 then
-			line:SetRightText(amount)
+			line:SetRightText(addon:ModNumber(amount))
 		else
 			line:SetRightText("")
 		end

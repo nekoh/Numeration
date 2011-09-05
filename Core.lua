@@ -202,6 +202,22 @@ function addon:ADDON_LOADED(event, addon)
 	end
 end
 
+local function round(num, idp)
+	return idp and math.floor(num*10 + 0.5)/10 or math.floor(num + 0.5)
+end
+local function abrNumber(self, num)
+	if num >= 1e6 then
+		return round(num/1e6, 1).."m"
+	elseif num >= 1e3 then
+		return round(num/1e3, 1).."k"
+	else
+		return num
+	end
+end
+local function fullNumber(self, num, idp)
+	return round(num, idp)
+end
+
 local s
 function addon:InitOptions()
 	s = self.coresettings
@@ -240,6 +256,8 @@ function addon:InitOptions()
 		}
 	end
 	self.nav = NumerationCharOptions.nav
+
+	self.ModNumber = s.shortnumbers and abrNumber or fullNumber
 end
 
 function ldb:OnTooltipShow()

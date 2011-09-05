@@ -28,6 +28,7 @@ n.coresettings = {
 	refreshinterval = 1,
 	minfightlength = 15,
 	combatseconds = 3,
+	shortnumbers = true,
 }
 
 -- available types and their order

@@ -117,7 +117,7 @@ function view:Update(merged)
 		else
 			line:SetLeftText(name)
 		end
-		line:SetRightText("%i (%02.1f%%)", value, value/total*100)
+		line:SetRightText("%s (%02.1f%%)", addon:ModNumber(value), value/total*100)
 		line:SetColor(c[1], c[2], c[3])
 		line:SetIcon(icon)
 		line.spellId = id
@@ -157,7 +157,7 @@ function view:Report(merged, num_lines)
 		if petName then
 			name = format("%s <%s>", name, petName)
 		end
-		addon:PrintLine("%i. %s  %i (%02.1f%%)", i, name, value, value/total*100)
+		addon:PrintLine("%i. %s  %s (%02.1f%%)", i, name, addon:ModNumber(value), value/total*100)
 	end
 	
 	sorttbl = wipe(sorttbl)

@@ -71,7 +71,7 @@ function view:Update(merged)
 		local line = addon.window:GetLine(i-self.first)
 		line:SetValues(value, maxvalue)
 		line:SetLeftText("%i. %s", i, target)
-		line:SetRightText("%i (%02.1f%%)", value, value/total*100)
+		line:SetRightText("%s (%02.1f%%)", addon:ModNumber(value), value/total*100)
 		line:SetColor(c[1], c[2], c[3])
 		line.target = target
 		line:SetDetailAction(detailAction)
@@ -101,7 +101,7 @@ function view:Report(merged, num_lines)
 		local target = sorttbl[i]
 		local value = targetToValue[target]
 		
-		addon:PrintLine("%i. %s  %i (%02.1f%%)", i, target, value, value/total*100)
+		addon:PrintLine("%i. %s  %s (%02.1f%%)", i, target, addon:ModNumber(value), value/total*100)
 	end
 	
 	sorttbl = wipe(sorttbl)
