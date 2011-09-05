@@ -111,7 +111,7 @@ function view:Update(merged)
 			line:SetLeftText("%i. %s", i, u.name)
 		end
 		if time ~= 0 then
-			line:SetRightText("%s (%s, %02.1f%%)", addon:ModNumber(value), addon:ModNumber(value/time, 1), value/total*100)
+			line:SetRightText("%s (%s, %02.1f%%)", addon:ModNumber(value), addon:ModNumber(value/time), value/total*100)
 		else
 			line:SetRightText("%s (%02.1f%%)", addon:ModNumber(value), value/total*100)
 		end
@@ -164,7 +164,7 @@ function view:Report(merged, num_lines)
 		end
 		
 		if time ~= 0 then
-			addon:PrintLine("%i. %s  %s (%s, %02.1f%%)", i, name, addon:ModNumber(value), addon:ModNumber(value/time, 1), value/total*100)
+			addon:PrintLine("%i. %s  %s (%s, %02.1f%%)", i, name, addon:ModNumber(value), addon:ModNumber(value/time), value/total*100)
 		else
 			addon:PrintLine("%i. %s  %s (%02.1f%%)", i, name, addon:ModNumber(value), value/total*100)
 		end

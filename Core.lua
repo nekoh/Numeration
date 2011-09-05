@@ -202,20 +202,17 @@ function addon:ADDON_LOADED(event, addon)
 	end
 end
 
-local function round(num, idp)
-	return idp and math.floor(num*10 + 0.5)/10 or math.floor(num + 0.5)
-end
 local function abrNumber(self, num)
 	if num >= 1e6 then
-		return round(num/1e6, 1).."m"
+		return ("%.1fm"):format(num / 1e6)
 	elseif num >= 1e3 then
-		return round(num/1e3, 1).."k"
+		return ("%.1fk"):format(num / 1e3)
 	else
 		return num
 	end
 end
-local function fullNumber(self, num, idp)
-	return round(num, idp)
+local function fullNumber(self, num)
+	return ("%i"):format(num)
 end
 
 local s
