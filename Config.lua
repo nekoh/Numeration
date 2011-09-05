@@ -13,6 +13,7 @@ n.windowsettings = {
 	titlefont = [[Fonts\ARIALN.TTF]],
 	titlefontsize = 13,
 	titlefontcolor = {1, .82, 0},
+	buttonhighlightcolor = {1, .82, 0},
 
 	lineheight = 14,
 	linegap = 1,

@@ -137,7 +137,7 @@ function window:OnInitialize()
 			numReports = 9
 			EasyMenu(menuTable, dropdown, "cursor", 0 , 0, "MENU")
 		end)
-		reset:SetScript("OnEnter", function() reset:SetBackdropColor(1, .82, 0, .8) end)
+		reset:SetScript("OnEnter", function() reset:SetBackdropColor(s.buttonhighlightcolor[1], s.buttonhighlightcolor[2], s.buttonhighlightcolor[3], .8) end)
 		reset:SetScript("OnLeave", function() reset:SetBackdropColor(0, 0, 0, s.titlealpha) end)
 	
 	local segment = CreateFrame("Button", nil, self)
@@ -151,7 +151,7 @@ function window:OnInitialize()
 		segment:SetPoint("RIGHT", reset, "LEFT", -2, 0)
 		segment:SetScript("OnMouseUp", function() addon.nav.view = "Sets" addon.nav.set = nil addon:RefreshDisplay() dropdown:Show() end)
 		segment:SetScript("OnEnter", function()
-			segment:SetBackdropColor(1, .82, 0, .8)
+			segment:SetBackdropColor(s.buttonhighlightcolor[1], s.buttonhighlightcolor[2], s.buttonhighlightcolor[3], .8)
 			GameTooltip:SetOwner(segment, "ANCHOR_BOTTOMRIGHT")
 			local name = ""
 			if addon.nav.set == "current" then
