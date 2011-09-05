@@ -665,22 +665,34 @@ function addon:LeaveCombatEvent()
 	end
 end
 
+local prevSummonDst, prevSummonSrc, prevSummonName = nil, nil, nil
 function addon:COMBAT_LOG_EVENT_UNFILTERED(e, timestamp, eventtype, hideCaster, srcGUID, srcName, srcFlags, srcRaidFlags, dstGUID, dstName, dstFlags, dstRaidFlags, ...)
 	if self.collect[eventtype] then
 		self.collect[eventtype](timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, ...)
 	end
 	
-	local ClassOrOwnerGUID = self.guidToClass[srcGUID]
-	if eventtype == "SPELL_SUMMON" and ClassOrOwnerGUID then
-		local realSrcGUID = self.guidToClass[ClassOrOwnerGUID] and ClassOrOwnerGUID or srcGUID
-		summonOwner[dstGUID] = realSrcGUID
-		summonName[dstGUID] = dstName
-		self.guidToClass[dstGUID] = realSrcGUID
-		self.guidToName[dstGUID] = dstName
-	elseif eventtype == "UNIT_DIED" and summonOwner[srcGUID] then
-		summonOwner[srcGUID] = nil
-		summonName[srcGUID] = nil
-		self.guidToClass[srcGUID] = nil
-		self.guidToName[srcGUID] = nil
+	if eventtype == "SPELL_SUMMON" then
+		local ClassOrOwnerGUID = self.guidToClass[srcGUID]
+		if ClassOrOwnerGUID then
+			local realSrcGUID = self.guidToClass[ClassOrOwnerGUID] and ClassOrOwnerGUID or srcGUID
+			summonOwner[dstGUID] = realSrcGUID
+			summonName[dstGUID] = dstName
+			self.guidToClass[dstGUID] = realSrcGUID
+			self.guidToName[dstGUID] = dstName
+			if prevSummonSrc ~= nil and dstGUID == prevSummonSrc then
+				summonOwner[prevSummonDst] = realSrcGUID
+				summonName[prevSummonDst] = prevSummonName
+				self.guidToClass[prevSummonDst] = realSrcGUID
+				self.guidToName[prevSummonDst] = prevSummonName
+				prevSummonDst, prevSummonSrc, prevSummonName = nil, nil, nil
+			end
+		else
+			prevSummonDst, prevSummonSrc, prevSummonName = dstGUID, srcGUID, dstName
+		end
+	elseif eventtype == "UNIT_DIED" and summonOwner[dstGUID] then
+		summonOwner[dstGUID] = nil
+		summonName[dstGUID] = nil
+		self.guidToClass[dstGUID] = nil
+		self.guidToName[dstGUID] = nil
 	end
 end
