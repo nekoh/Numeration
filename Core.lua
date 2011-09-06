@@ -208,7 +208,7 @@ local function abrNumber(self, num)
 	elseif num >= 1e3 then
 		return ("%.1fk"):format(num / 1e3)
 	else
-		return num
+		return ("%i"):format(num)
 	end
 end
 local function fullNumber(self, num)
