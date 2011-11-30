@@ -443,18 +443,9 @@ end
 
 function collect:RemoveUnneededEvents()
 	if not addon.ids.deathlog and not addon.ids.ga then
-		collect.SPELL_MISSED = nil
-		collect.SPELL_PERIODIC_MISSED = nil
-		collect.SPELL_BUILDING_MISSED = nil
-		collect.RANGE_MISSED = nil
-		collect.DAMAGE_SHIELD_MISSED = nil
-		collect.SWING_MISSED = nil
-
 		collect.SPELL_AURA_APPLIED = nil
 		collect.SPELL_AURA_REFRESH = nil
 		collect.SPELL_AURA_REMOVED = nil
-		collect.SPELL_AURA_APPLIED_DOSE = nil
-		collect.SPELL_AURA_REMOVED_DOSE = nil
 	end
 
 	if not addon.ids.hd and not addon.ids.oh and not addon.ids.ht and not addon.ids.deathlog then
@@ -477,6 +468,16 @@ function collect:RemoveUnneededEvents()
 	end
 
 	if not addon.ids.deathlog then
+		collect.SPELL_MISSED = nil
+		collect.SPELL_PERIODIC_MISSED = nil
+		collect.SPELL_BUILDING_MISSED = nil
+		collect.RANGE_MISSED = nil
+		collect.DAMAGE_SHIELD_MISSED = nil
+		collect.SWING_MISSED = nil
+
+		collect.SPELL_AURA_APPLIED_DOSE = nil
+		collect.SPELL_AURA_REMOVED_DOSE = nil
+
 		collect.UNIT_DIED = nil
 		collect.SPELL_RESURRECT = nil
 	end
