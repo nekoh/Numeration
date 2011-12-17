@@ -164,13 +164,13 @@ do
 	addon.colorhex["PET"] = string.format("%02X%02X%02X", addon.color.PET[1] * 255, addon.color.PET[2] * 255, addon.color.PET[3] * 255)
 end
 
-addon.spellIcon = setmetatable({ [0] = "", [75] = "", }, { __index = function(tbl, i)
+addon.spellIcon = setmetatable({ [75] = "", [6603] = "", }, { __index = function(tbl, i)
 	local spell, _, icon = GetSpellInfo(i)
 	addon.spellName[i] = spell
 	tbl[i] = icon
 	return icon
 end})
-addon.spellName = setmetatable({ [0] = "Melee", }, {__index = function(tbl, i)
+addon.spellName = setmetatable({}, {__index = function(tbl, i)
 	local spell, _, icon = GetSpellInfo(i)
 	addon.spellIcon[i] = icon
 	tbl[i] = spell

@@ -327,7 +327,7 @@ collect.RANGE_DAMAGE = collect.SPELL_DAMAGE
 collect.DAMAGE_SPLIT = collect.SPELL_DAMAGE
 collect.DAMAGE_SHIELD = collect.SPELL_DAMAGE
 function collect.SWING_DAMAGE(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, amount, overkill, school, resisted, blocked, absorbed, critical, glancing, crushing)
-	collect.SPELL_DAMAGE(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, 0, "Melee", 0x01, amount, overkill, school, resisted, blocked, absorbed, critical, glancing, crushing)
+	collect.SPELL_DAMAGE(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, 6603, spellName[6603], 0x01, amount, overkill, school, resisted, blocked, absorbed, critical, glancing, crushing)
 end
 function collect.ENVIRONMENTAL_DAMAGE(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, environmentalType, amount, overkill, school, resisted, blocked, absorbed, critical, glancing, crushing)
 	collect.SPELL_DAMAGE(timestamp, "Environment", "Environment", srcFlags, dstGUID, dstName, dstFlags, environmentalType, environmentalType, 0x01, amount, overkill, school, resisted, blocked, absorbed, critical, glancing, crushing)
@@ -345,7 +345,7 @@ collect.SPELL_BUILDING_MISSED = collect.SPELL_MISSED
 collect.RANGE_MISSED = collect.SPELL_MISSED
 collect.DAMAGE_SHIELD_MISSED = collect.SPELL_MISSED
 function collect.SWING_MISSED(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, missType, amountMissed)
-	collect.SPELL_MISSED(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, 0, "Melee", 0x01, missType, amountMissed)
+	collect.SPELL_MISSED(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, 6603, spellName[6603], 0x01, missType, amountMissed)
 end
 
 function collect.SPELL_HEAL(timestamp, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName, spellSchool, amount, overhealing, absorbed, critical)
