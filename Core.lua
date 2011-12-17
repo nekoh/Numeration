@@ -145,7 +145,9 @@ local bossIds = {
 	[55294]	= true,	-- Ultraxion
 	[56427]	= true,	-- Warmaster Blackhorn
 	[53879]	= true,	-- Spine of Deathwing
-	[56173]	= true,	-- Madness of Deathwing
+	[56167] = "Madness of Deathwing", -- Arm Tentacle
+	[56846] = "Madness of Deathwing", -- Arm Tentacle
+	[56168] = "Madness of Deathwing", -- Wing Tentacle
 }
 
 -- used colors
